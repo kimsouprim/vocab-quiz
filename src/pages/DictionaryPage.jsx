@@ -1,8 +1,15 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 
-const DICT_URL = 'https://m.en.dict.naver.com/#/main'
+const BASE_URL = 'https://en.dict.naver.com/#'
 
 export default function DictionaryPage() {
+  const [searchParams] = useSearchParams()
+  const query = searchParams.get('q') ?? ''
+  const dictUrl = query
+    ? `${BASE_URL}/search?query=${encodeURIComponent(query)}`
+    : `${BASE_URL}/main`
+
   const [loaded, setLoaded] = useState(false)
   const [blocked, setBlocked] = useState(false)
 
@@ -10,9 +17,11 @@ export default function DictionaryPage() {
     <div className="flex flex-col h-screen pb-16">
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-6 pb-3 bg-white border-b border-gray-100 flex-shrink-0">
-        <h1 className="text-xl font-bold text-gray-900">사전</h1>
+        <h1 className="text-xl font-bold text-gray-900">
+          {query ? `"${query}"` : '사전'}
+        </h1>
         <a
-          href={DICT_URL}
+          href={dictUrl}
           target="_blank"
           rel="noreferrer"
           className="text-xs px-3 py-1.5 bg-gray-100 text-gray-500 rounded-lg font-medium"
@@ -30,7 +39,7 @@ export default function DictionaryPage() {
             </div>
           )}
           <iframe
-            src={DICT_URL}
+            src={dictUrl}
             className="w-full h-full border-none"
             onLoad={() => setLoaded(true)}
             onError={() => setBlocked(true)}
