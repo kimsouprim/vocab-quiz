@@ -321,10 +321,6 @@ function TestingView({
   word, answer, onAnswerChange, onSubmit, onGrade,
   onPause, onFinish, wordPhase, answeredCount, canStop, remaining, inputRef, listLabel,
 }) {
-  const hintsToShow = word.incorrectCount > 0
-    ? word.examples.slice(0, word.incorrectCount)
-    : []
-
   function handleKeyDown(e) {
     if (e.key === 'Enter' && wordPhase === 'input' && answer.trim()) onSubmit()
   }
@@ -346,17 +342,6 @@ function TestingView({
           )}
         </div>
 
-        {/* Hint examples (based on incorrectCount) */}
-        {hintsToShow.length > 0 && (
-          <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4">
-            <p className="text-xs font-semibold text-amber-600 mb-2">예문 힌트</p>
-            {hintsToShow.map((ex, i) => (
-              <p key={i} className="text-sm text-gray-700 mb-1">
-                <span className="text-amber-400 mr-1">{i + 1}.</span>{ex}
-              </p>
-            ))}
-          </div>
-        )}
 
         {/* INPUT phase */}
         {wordPhase === 'input' && (
