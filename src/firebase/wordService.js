@@ -7,27 +7,32 @@ import { db } from './config'
 const wordsCol = (uid) => collection(db, 'users', uid, 'words')
 const wordDoc = (uid, wordId) => doc(db, 'users', uid, 'words', wordId)
 
+// 단어 정규화: 소문자 + 앞뒤 공백 제거 + 연속 공백 단일화
+function normalizeKey(word) {
+  return word.toLowerCase().trim().replace(/\s+/g, ' ')
+}
+
 export async function importWords(uid, rows) {
   // rows: [{ word, meaning, examples: [] }]
   const existing = await getAllWords(uid)
-  const existingMap = Object.fromEntries(existing.map((w) => [w.word.toLowerCase(), w]))
+  const existingMap = Object.fromEntries(existing.map((w) => [normalizeKey(w.word), w]))
 
   const batch = writeBatch(db)
   let added = 0
   let updated = 0
 
   for (const row of rows) {
-    const key = row.word.toLowerCase()
+    const key = normalizeKey(row.word)
     if (existingMap[key]) {
-      // Update examples only — preserve status and incorrectCount
+      // 예문과 뜻 업데이트 — 오답 횟수, 정답/오답 상태는 유지
       const ref = wordDoc(uid, existingMap[key].id)
-      batch.update(ref, { examples: row.examples })
+      batch.update(ref, { examples: row.examples, meaning: row.meaning })
       updated++
     } else {
       const ref = doc(wordsCol(uid))
       batch.set(ref, {
-        word: row.word,
-        meaning: row.meaning,
+        word: row.word.trim(),
+        meaning: row.meaning.trim(),
         examples: row.examples,
         incorrectCount: 0,
         status: 'untested',
