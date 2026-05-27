@@ -17,7 +17,15 @@ export default function WordListPage() {
   const [expanded, setExpanded] = useState(null)
 
   const listMap = { all: allWords, correct: correctWords, incorrect: incorrectWords }
-  const words = listMap[active] ?? []
+  const rawWords = listMap[active] ?? []
+  // 오답 단어장: 예문 추가 필요한 단어 우선 정렬
+  const words = active === 'incorrect'
+    ? [...rawWords].sort((a, b) => {
+        const aNeedsEx = a.incorrectCount > 0 && a.examples.length < a.incorrectCount ? 1 : 0
+        const bNeedsEx = b.incorrectCount > 0 && b.examples.length < b.incorrectCount ? 1 : 0
+        return bNeedsEx - aNeedsEx
+      })
+    : rawWords
 
   if (loading) return <LoadingScreen />
 
