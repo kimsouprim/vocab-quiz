@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-const DICT_URL = 'https://en.dict.naver.com/#/main'
+const DICT_URL = 'https://m.en.dict.naver.com/#/main'
 
 export default function DictionaryPage() {
   const [loaded, setLoaded] = useState(false)
