@@ -103,10 +103,11 @@ export default function TestPage() {
     }
     const newItems = [...(localSession?.testItems ?? []), item]
     const updated = { ...localSession, testItems: newItems }
-    setLocalSession(updated)
-    await saveSession(user.uid, updated)
+    // 세 state를 동시에 업데이트해서 중간 렌더링 방지
     setAnswer('')
     setWordPhase('input')
+    setLocalSession(updated)
+    await saveSession(user.uid, updated)
   }
 
   // ── 일시정지 ──────────────────────────────────────────────────
