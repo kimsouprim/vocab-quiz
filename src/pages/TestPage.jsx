@@ -236,6 +236,7 @@ export default function TestPage() {
         remaining={wordPool.length}
         inputRef={inputRef}
         listLabel={listLabels[localSession?.wordListType]}
+        prevItems={localSession?.testItems ?? []}
       />
     )
   }
@@ -333,7 +334,10 @@ function SetupView({ cycle, listLabels, listMap, onStart, pausedSession, onResum
 function TestingView({
   word, answer, onAnswerChange, onSubmit, onGrade,
   onPause, onFinish, wordPhase, answeredCount, canStop, remaining, inputRef, listLabel,
+  prevItems,
 }) {
+  const [showPrev, setShowPrev] = useState(false)
+
   function handleKeyDown(e) {
     if (e.key === 'Enter' && wordPhase === 'input' && answer.trim()) onSubmit()
   }
@@ -343,8 +347,49 @@ function TestingView({
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <span className="text-sm text-gray-500">{listLabel} · {answeredCount}번째</span>
-        <span className="text-xs text-gray-400">사이클 {remaining}개 남음</span>
+        <div className="flex items-center gap-2">
+          {answeredCount > 0 && (
+            <button
+              onClick={() => setShowPrev(true)}
+              className="text-xs text-primary-600 font-medium bg-primary-50 px-2.5 py-1 rounded-lg"
+            >
+              이전 단어 {answeredCount}개 ›
+            </button>
+          )}
+          <span className="text-xs text-gray-400">남음 {remaining}개</span>
+        </div>
       </div>
+
+      {/* 이전 단어 모달 */}
+      {showPrev && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-white">
+          <div className="flex items-center justify-between px-4 pt-6 pb-3 border-b border-gray-100">
+            <h2 className="font-bold text-gray-900">이전 단어 ({prevItems.length}개)</h2>
+            <button onClick={() => setShowPrev(false)} className="text-gray-400 p-1">
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+            {[...prevItems].reverse().map((item, i) => (
+              <div
+                key={i}
+                className={`bg-white rounded-xl border p-3 ${item.isCorrect ? 'border-green-100' : 'border-red-100'}`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-semibold text-gray-900">{item.word}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${item.isCorrect ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-500'}`}>
+                    {item.isCorrect ? '○' : '✕'}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-500">{item.meaning}</p>
+                <p className="text-xs text-blue-400 mt-1">내 답: {item.userAnswer}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 flex flex-col justify-center gap-4">
         {/* Word card */}

@@ -4,7 +4,7 @@ import { DataProvider } from './contexts/DataContext'
 import Navigation from './components/Navigation'
 import LoginPage from './pages/LoginPage'
 import WordListPage from './pages/WordListPage'
-import SearchPage from './pages/SearchPage'
+import DictionaryPage from './pages/DictionaryPage'
 import TestPage from './pages/TestPage'
 import HistoryPage from './pages/HistoryPage'
 import ImportPage from './pages/ImportPage'
@@ -28,7 +28,7 @@ function AppRoutes() {
         <Routes>
           <Route path="/" element={<Navigate to="/words" replace />} />
           <Route path="/words" element={<WordListPage />} />
-          <Route path="/search" element={<SearchPage />} />
+          <Route path="/dictionary" element={<DictionaryPage />} />
           <Route path="/test" element={<TestPage />} />
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/import" element={<ImportPage />} />

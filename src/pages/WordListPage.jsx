@@ -15,11 +15,18 @@ export default function WordListPage() {
   const { allWords, correctWords, incorrectWords, loading } = useData()
   const [active, setActive] = useState('all')
   const [expanded, setExpanded] = useState(null)
+  const [searchQuery, setSearchQuery] = useState('')
 
   const listMap = { all: allWords, correct: correctWords, incorrect: incorrectWords }
   const rawWords = listMap[active] ?? []
-  // 오답 단어장: 예문 추가 필요한 단어 우선 정렬
-  const words = active === 'incorrect'
+
+  const q = searchQuery.trim().toLowerCase()
+  // 검색 중이면 전체 단어에서 검색, 아니면 탭별 정렬 표시
+  const words = q
+    ? allWords.filter((w) =>
+        w.word.toLowerCase().includes(q) || w.meaning.toLowerCase().includes(q)
+      )
+    : active === 'incorrect'
     ? [...rawWords].sort((a, b) => {
         const aNeedsEx = a.incorrectCount > 0 && a.examples.length < a.incorrectCount ? 1 : 0
         const bNeedsEx = b.incorrectCount > 0 && b.examples.length < b.incorrectCount ? 1 : 0
@@ -50,8 +57,31 @@ export default function WordListPage() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 px-4 mb-4 overflow-x-auto">
+      {/* 검색창 */}
+      <div className="px-4 mb-3">
+        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 shadow-sm">
+          <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 15.803a7.5 7.5 0 0010.607 10.607z" />
+          </svg>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => { setSearchQuery(e.target.value); setExpanded(null) }}
+            placeholder="단어 또는 뜻으로 검색"
+            className="flex-1 text-sm outline-none bg-transparent"
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery('')} className="text-gray-400">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Tabs (검색 중엔 숨김) */}
+      {!searchQuery && <div className="flex gap-2 px-4 mb-4 overflow-x-auto">
         {LIST_TYPES.map(({ key, label, color }) => {
           const count = listMap[key].length
           return (
@@ -66,7 +96,7 @@ export default function WordListPage() {
             </button>
           )
         })}
-      </div>
+      </div>}
 
       {/* Word list */}
       {words.length === 0 ? (
