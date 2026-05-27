@@ -16,15 +16,17 @@ export async function importWords(uid, rows) {
   // rows: [{ word, meaning, examples: [] }]
   const existing = await getAllWords(uid)
   const existingMap = Object.fromEntries(existing.map((w) => [normalizeKey(w.word), w]))
+  const incomingKeys = new Set(rows.map((r) => normalizeKey(r.word)))
 
   const batch = writeBatch(db)
   let added = 0
   let updated = 0
+  let removed = 0
 
+  // 추가 또는 업데이트
   for (const row of rows) {
     const key = normalizeKey(row.word)
     if (existingMap[key]) {
-      // 예문과 뜻 업데이트 — 오답 횟수, 정답/오답 상태는 유지
       const ref = wordDoc(uid, existingMap[key].id)
       batch.update(ref, { examples: row.examples, meaning: row.meaning })
       updated++
@@ -42,8 +44,16 @@ export async function importWords(uid, rows) {
     }
   }
 
+  // Excel에 없는 단어 삭제
+  for (const w of existing) {
+    if (!incomingKeys.has(normalizeKey(w.word))) {
+      batch.delete(wordDoc(uid, w.id))
+      removed++
+    }
+  }
+
   await batch.commit()
-  return { added, updated }
+  return { added, updated, removed }
 }
 
 export async function getAllWords(uid) {

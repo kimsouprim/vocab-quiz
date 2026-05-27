@@ -62,7 +62,7 @@ export default function ImportPage() {
         }`}>
           {status === 'error'
             ? '파일을 읽는 중 오류가 발생했어요. 형식을 확인해 주세요.'
-            : `완료! 새 단어 ${status.added}개 추가, 기존 단어 ${status.updated}개 업데이트`}
+            : `완료! 추가 ${status.added}개 · 업데이트 ${status.updated}개 · 삭제 ${status.removed}개`}
         </div>
       )}
     </div>
