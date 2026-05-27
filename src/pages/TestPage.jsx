@@ -25,14 +25,28 @@ export default function TestPage() {
   const listMap = { all: allWords, correct: correctWords, incorrect: incorrectWords }
   const listLabels = { all: '전체 단어장', correct: '정답 단어장', incorrect: '오답 단어장' }
 
-  // Restore in-progress session
+  // Restore in-progress session (날짜 바뀌면 자동 마무리)
   useEffect(() => {
-    if (session?.phase === 'testing') {
+    if (!session?.phase) return
+    if (session.phase === 'testing' && session.date < today()) {
+      // 날짜가 지난 세션 → 자동 마무리
+      autoFinalizeSession(session)
+    } else if (session.phase === 'testing') {
       setLocalSession(session)
       setPhase('testing')
       setWordPhase('input')
     }
-  }, [session])
+  }, [session]) // eslint-disable-line
+
+  async function autoFinalizeSession(sess) {
+    const items = sess.testItems ?? []
+    if (items.length > 0) {
+      await runFinalize(items, sess)
+    } else {
+      await clearSession(user.uid)
+    }
+    await refresh()
+  }
 
   // Focus input when word phase is 'input'
   useEffect(() => {
@@ -121,14 +135,23 @@ export default function TestPage() {
 
   // ── 오늘 시험 마무리 ──────────────────────────────────────────
   async function handleFinish() {
-    await finalizeTest(localSession.testItems)
+    const cycleComplete = await runFinalize(localSession.testItems, localSession)
+    await refresh()
+    setResult({
+      correctCount: localSession.testItems.filter((i) => i.isCorrect).length,
+      incorrectCount: localSession.testItems.filter((i) => !i.isCorrect).length,
+      totalCount: localSession.testItems.length,
+      listType: localSession.wordListType,
+      cycleComplete,
+    })
+    setPhase('result')
   }
 
-  async function finalizeTest(items) {
+  // 공통 마무리 로직 (직접 호출 + 자동 마무리 공유)
+  async function runFinalize(items, sess) {
     const correctItems = items.filter((i) => i.isCorrect)
     const incorrectItems = items.filter((i) => !i.isCorrect)
 
-    // Update word statuses
     const updates = items.map((item) => ({
       id: item.wordId,
       status: item.isCorrect ? 'correct' : 'incorrect',
@@ -136,15 +159,14 @@ export default function TestPage() {
     }))
     await batchUpdateWords(user.uid, updates)
 
-    // Remove tested words from cycle
     const testedIds = items.map((i) => i.wordId)
     const remaining = await removeFromCycle(user.uid, testedIds)
     if (remaining.length === 0) await clearCycle(user.uid)
 
-    // Save test record
-    await saveTest(user.uid, localSession.date, {
-      date: localSession.date,
-      wordListType: localSession.wordListType,
+    // 같은 날 같은 단어장이면 합산, 다른 단어장이면 별도 저장
+    await saveTest(user.uid, sess.date, sess.wordListType, {
+      date: sess.date,
+      wordListType: sess.wordListType,
       items,
       correctCount: correctItems.length,
       incorrectCount: incorrectItems.length,
@@ -152,16 +174,7 @@ export default function TestPage() {
     })
 
     await clearSession(user.uid)
-    await refresh()
-
-    setResult({
-      correctCount: correctItems.length,
-      incorrectCount: incorrectItems.length,
-      totalCount: items.length,
-      listType: localSession.wordListType,
-      cycleComplete: remaining.length === 0,
-    })
-    setPhase('result')
+    return remaining.length === 0 // cycleComplete
   }
 
   // ── RENDER ────────────────────────────────────────────────────

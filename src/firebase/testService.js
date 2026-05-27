@@ -25,13 +25,31 @@ export async function clearSession(uid) {
 }
 
 // --- Completed tests ---
+// 문서 ID: {date}_{listType} → 같은 날 같은 단어장은 합산, 다른 단어장은 별도 저장
 
-export async function saveTest(uid, date, data) {
-  await setDoc(testDoc(uid, date), { ...data, completedAt: new Date() })
+export async function saveTest(uid, date, listType, data) {
+  const id = `${date}_${listType}`
+  const ref = doc(db, 'users', uid, 'tests', id)
+  const existing = await getDoc(ref)
+
+  if (existing.exists()) {
+    // 같은 날 같은 단어장: 기록 합산
+    const prev = existing.data()
+    await updateDoc(ref, {
+      items: [...(prev.items ?? []), ...data.items],
+      correctCount: (prev.correctCount ?? 0) + data.correctCount,
+      incorrectCount: (prev.incorrectCount ?? 0) + data.incorrectCount,
+      totalCount: (prev.totalCount ?? 0) + data.totalCount,
+      completedAt: new Date(),
+    })
+  } else {
+    await setDoc(ref, { ...data, completedAt: new Date() })
+  }
 }
 
-export async function getTest(uid, date) {
-  const snap = await getDoc(testDoc(uid, date))
+export async function getTest(uid, date, listType) {
+  const id = `${date}_${listType}`
+  const snap = await getDoc(doc(db, 'users', uid, 'tests', id))
   if (!snap.exists()) return null
   return snap.data()
 }
