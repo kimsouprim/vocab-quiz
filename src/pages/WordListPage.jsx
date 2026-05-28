@@ -16,23 +16,31 @@ export default function WordListPage() {
   const [active, setActive] = useState('all')
   const [expanded, setExpanded] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [sortBy, setSortBy] = useState('default') // default | alpha-asc | alpha-desc | incorrect-asc | incorrect-desc
 
   const listMap = { all: allWords, correct: correctWords, incorrect: incorrectWords }
   const rawWords = listMap[active] ?? []
-
   const q = searchQuery.trim().toLowerCase()
-  // 검색 중이면 전체 단어에서 검색, 아니면 탭별 정렬 표시
-  const words = q
-    ? allWords.filter((w) =>
-        w.word.toLowerCase().includes(q) || w.meaning.toLowerCase().includes(q)
-      )
-    : active === 'incorrect'
-    ? [...rawWords].sort((a, b) => {
+
+  const baseWords = q
+    ? allWords.filter((w) => w.word.toLowerCase().includes(q) || w.meaning.toLowerCase().includes(q))
+    : rawWords
+
+  const words = (() => {
+    if (sortBy === 'alpha-asc')      return [...baseWords].sort((a, b) => a.word.localeCompare(b.word))
+    if (sortBy === 'alpha-desc')     return [...baseWords].sort((a, b) => b.word.localeCompare(a.word))
+    if (sortBy === 'incorrect-asc')  return [...baseWords].sort((a, b) => a.incorrectCount - b.incorrectCount)
+    if (sortBy === 'incorrect-desc') return [...baseWords].sort((a, b) => b.incorrectCount - a.incorrectCount)
+    // default: 오답 단어장은 예문 필요 단어 우선
+    if (!q && active === 'incorrect') {
+      return [...baseWords].sort((a, b) => {
         const aNeedsEx = a.incorrectCount > 0 && a.examples.length < a.incorrectCount ? 1 : 0
         const bNeedsEx = b.incorrectCount > 0 && b.examples.length < b.incorrectCount ? 1 : 0
         return bNeedsEx - aNeedsEx
       })
-    : rawWords
+    }
+    return baseWords
+  })()
 
   if (loading) return <LoadingScreen />
 
@@ -97,6 +105,29 @@ export default function WordListPage() {
           )
         })}
       </div>}
+
+      {/* 정렬 */}
+      <div className="flex gap-1.5 px-4 mb-3 overflow-x-auto">
+        {[
+          { key: 'default',        label: '기본순' },
+          { key: 'alpha-asc',      label: 'A→Z' },
+          { key: 'alpha-desc',     label: 'Z→A' },
+          { key: 'incorrect-desc', label: '오답 많은순' },
+          { key: 'incorrect-asc',  label: '오답 적은순' },
+        ].map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setSortBy(key)}
+            className={`flex-shrink-0 text-xs px-2.5 py-1 rounded-full border transition-all font-medium ${
+              sortBy === key
+                ? 'bg-gray-700 text-white border-gray-700'
+                : 'bg-white text-gray-400 border-gray-200'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
       {/* Word list */}
       {words.length === 0 ? (

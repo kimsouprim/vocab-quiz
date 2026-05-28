@@ -336,6 +336,7 @@ function TestingView({
   onPause, onFinish, wordPhase, answeredCount, canStop, remaining, inputRef, listLabel,
   prevItems,
 }) {
+  const navigate = useNavigate()
   const [showPrev, setShowPrev] = useState(false)
 
   function handleKeyDown(e) {
@@ -434,7 +435,18 @@ function TestingView({
 
             {/* Correct answer */}
             <div className="bg-green-50 border border-green-200 rounded-2xl p-4">
-              <p className="text-xs font-semibold text-green-500 mb-1">정답</p>
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-xs font-semibold text-green-500">정답</p>
+                <button
+                  onClick={() => navigate(`/dictionary?q=${encodeURIComponent(word.word)}`)}
+                  className="flex items-center gap-1 text-xs text-primary-500 font-medium"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                  </svg>
+                  사전
+                </button>
+              </div>
               <p className="text-base font-semibold text-gray-900">{word.meaning}</p>
               {word.examples.length > 0 && (
                 <div className="mt-2 space-y-1">
