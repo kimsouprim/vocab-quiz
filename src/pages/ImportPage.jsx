@@ -6,9 +6,9 @@ import { parseExcel } from '../utils/excelParser'
 
 export default function ImportPage() {
   const { user } = useAuth()
-  const { refresh } = useData()
+  const { allWords, setWords } = useData()
   const inputRef = useRef(null)
-  const [status, setStatus] = useState(null) // null | 'loading' | { added, updated } | 'error'
+  const [status, setStatus] = useState(null) // null | 'loading' | { added, updated, removed } | 'error'
 
   async function handleFile(e) {
     const file = e.target.files?.[0]
@@ -20,9 +20,11 @@ export default function ImportPage() {
         setStatus('error')
         return
       }
-      const result = await importWords(user.uid, rows)
-      await refresh()
-      setStatus(result)
+      // 기존 단어를 DataContext에서 바로 사용 → 재조회 없음
+      const result = await importWords(user.uid, rows, allWords)
+      // 저장 후 결과를 직접 반영 → refresh() 재조회 없음
+      setWords(result.words)
+      setStatus({ added: result.added, updated: result.updated, removed: result.removed })
     } catch {
       setStatus('error')
     }

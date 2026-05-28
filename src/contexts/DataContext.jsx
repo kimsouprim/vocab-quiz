@@ -50,7 +50,7 @@ export function DataProvider({ children }) {
     <DataContext.Provider value={{
       words, allWords, correctWords, incorrectWords,
       cycle, session, tests,
-      loading, refresh,
+      loading, refresh, setWords,
     }}>
       {children}
     </DataContext.Provider>

@@ -12,9 +12,9 @@ function normalizeKey(word) {
   return word.toLowerCase().trim().replace(/\s+/g, ' ')
 }
 
-export async function importWords(uid, rows) {
-  // rows: [{ word, meaning, examples: [] }]
-  const existing = await getAllWords(uid)
+// existingWords: DataContext에서 받아서 재조회 생략 (없으면 직접 fetch)
+export async function importWords(uid, rows, existingWords = null) {
+  const existing = existingWords ?? await getAllWords(uid)
   const existingMap = Object.fromEntries(existing.map((w) => [normalizeKey(w.word), w]))
   const incomingKeys = new Set(rows.map((r) => normalizeKey(r.word)))
 
@@ -22,24 +22,28 @@ export async function importWords(uid, rows) {
   let added = 0
   let updated = 0
   let removed = 0
+  const resultWords = []
 
   // 추가 또는 업데이트
   for (const row of rows) {
     const key = normalizeKey(row.word)
     if (existingMap[key]) {
-      const ref = wordDoc(uid, existingMap[key].id)
-      batch.update(ref, { examples: row.examples, meaning: row.meaning })
+      const existing = existingMap[key]
+      batch.update(wordDoc(uid, existing.id), { examples: row.examples, meaning: row.meaning })
+      resultWords.push({ ...existing, examples: row.examples, meaning: row.meaning })
       updated++
     } else {
       const ref = doc(wordsCol(uid))
-      batch.set(ref, {
+      const newWord = {
         word: row.word.trim(),
         meaning: row.meaning.trim(),
         examples: row.examples,
         incorrectCount: 0,
         status: 'untested',
         createdAt: new Date(),
-      })
+      }
+      batch.set(ref, newWord)
+      resultWords.push({ id: ref.id, ...newWord })
       added++
     }
   }
@@ -53,7 +57,7 @@ export async function importWords(uid, rows) {
   }
 
   await batch.commit()
-  return { added, updated, removed }
+  return { added, updated, removed, words: resultWords }
 }
 
 export async function getAllWords(uid) {
