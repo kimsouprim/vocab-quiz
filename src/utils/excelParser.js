@@ -11,7 +11,8 @@ export function parseExcel(file) {
         const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' })
 
         const words = []
-        for (const row of rows) {
+        for (let i = 1; i < rows.length; i++) { // 0번째 행(헤더) 건너뜀
+        const row = rows[i]
           const word = String(row[0] ?? '').trim()
           const meaning = String(row[1] ?? '').trim()
           if (!word || !meaning) continue

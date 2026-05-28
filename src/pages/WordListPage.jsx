@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useData } from '../contexts/DataContext'
@@ -26,18 +26,29 @@ export default function WordListPage() {
     ? allWords.filter((w) => w.word.toLowerCase().includes(q) || w.meaning.toLowerCase().includes(q))
     : rawWords
 
+  // 기본순: 데이터 로드 시 한 번 랜덤 섞기 (새로고침마다 변경)
+  const shuffled = useMemo(
+    () => [...allWords].sort(() => Math.random() - 0.5),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [allWords.length]
+  )
+
   const words = (() => {
     if (sortBy === 'alpha-asc')      return [...baseWords].sort((a, b) => a.word.localeCompare(b.word))
     if (sortBy === 'alpha-desc')     return [...baseWords].sort((a, b) => b.word.localeCompare(a.word))
     if (sortBy === 'incorrect-asc')  return [...baseWords].sort((a, b) => a.incorrectCount - b.incorrectCount)
     if (sortBy === 'incorrect-desc') return [...baseWords].sort((a, b) => b.incorrectCount - a.incorrectCount)
-    // default: 오답 단어장은 예문 필요 단어 우선
+    // default: 오답 단어장은 예문 필요 단어 우선, 나머지는 랜덤
     if (!q && active === 'incorrect') {
       return [...baseWords].sort((a, b) => {
         const aNeedsEx = a.incorrectCount > 0 && a.examples.length < a.incorrectCount ? 1 : 0
         const bNeedsEx = b.incorrectCount > 0 && b.examples.length < b.incorrectCount ? 1 : 0
         return bNeedsEx - aNeedsEx
       })
+    }
+    if (sortBy === 'default') {
+      const ids = new Set(baseWords.map((w) => w.id))
+      return shuffled.filter((w) => ids.has(w.id))
     }
     return baseWords
   })()
