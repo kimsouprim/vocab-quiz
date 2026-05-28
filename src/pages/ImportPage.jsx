@@ -108,7 +108,6 @@ export default function ImportPage() {
   return (
     <div className="min-h-screen pb-24 pt-6 px-4 max-w-lg mx-auto">
       <h1 className="text-xl font-bold text-gray-900 mb-6">Excel 불러오기</h1>
-      <p className="text-xs text-gray-400 mb-4">API: {String(supportsFileAccess)}</p>
 
       {/* 파일 형식 안내 */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-6">
