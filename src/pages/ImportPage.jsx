@@ -145,12 +145,12 @@ export default function ImportPage() {
                 : 'bg-primary-600 text-white hover:bg-primary-700 py-4 text-lg'
             }`}
           >
-            {savedHandle ? '다른 파일 선택' : 'Excel 파일 선택'}
+            {savedHandle ? '다른 파일 선택' : 'Excel 파일 선택 후 기억하기'}
           </button>
 
-          {savedHandle && (
+          {!savedHandle && (
             <p className="text-xs text-gray-400 text-center mt-2">
-              파일을 기억해뒀어요. 다음부터 ⚡ 바로 동기화를 탭하세요.
+              한 번 선택하면 다음부터 ⚡ 바로 동기화 버튼으로 바로 업로드돼요.
             </p>
           )}
         </>
