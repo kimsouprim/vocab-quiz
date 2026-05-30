@@ -26,12 +26,19 @@ export default function WordListPage() {
     ? allWords.filter((w) => w.word.toLowerCase().includes(q) || w.meaning.toLowerCase().includes(q))
     : rawWords
 
-  // 기본순: 데이터 로드 시 한 번 랜덤 섞기 (새로고침마다 변경)
-  const shuffled = useMemo(
-    () => [...allWords].sort(() => Math.random() - 0.5),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [allWords.length]
-  )
+  // 기본순: 탭 이동 후 돌아와도 순서 유지 (새로고침 시에만 재섞기)
+  const shuffled = useMemo(() => {
+    try {
+      const cached = JSON.parse(sessionStorage.getItem('wordlist-shuffle') ?? 'null')
+      if (Array.isArray(cached) && cached.length === allWords.length && allWords.length > 0) {
+        const restored = cached.map((id) => allWords.find((w) => w.id === id)).filter(Boolean)
+        if (restored.length === allWords.length) return restored
+      }
+    } catch {}
+    const result = [...allWords].sort(() => Math.random() - 0.5)
+    try { sessionStorage.setItem('wordlist-shuffle', JSON.stringify(result.map((w) => w.id))) } catch {}
+    return result
+  }, [allWords.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const words = (() => {
     if (sortBy === 'alpha-asc')      return [...baseWords].sort((a, b) => a.word.localeCompare(b.word))

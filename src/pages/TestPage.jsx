@@ -26,10 +26,28 @@ export default function TestPage() {
   const listLabels = { all: '전체 단어장', correct: '정답 단어장', incorrect: '오답 단어장' }
 
   // Restore in-progress session (날짜 바뀌면 자동 마무리)
+  // sessionStorage 우선 복원 → 사전 탭 이동 후 돌아와도 진행 상태 유지
+  const sessionRestored = useRef(false)
   useEffect(() => {
+    if (sessionRestored.current) return
+    if (session === undefined) return // 아직 DataContext 로딩 중
+    sessionRestored.current = true
+
+    // sessionStorage에 저장된 진행 상태가 있으면 우선 복원
+    try {
+      const stored = JSON.parse(sessionStorage.getItem('test-local-session') ?? 'null')
+      if (stored?.phase === 'testing' && stored.date === today()) {
+        setLocalSession(stored)
+        setPhase('testing')
+        setWordPhase(sessionStorage.getItem('test-word-phase') ?? 'input')
+        setAnswer(sessionStorage.getItem('test-answer') ?? '')
+        return
+      }
+    } catch {}
+
+    // sessionStorage 없으면 Firestore 세션으로 복원
     if (!session?.phase) return
     if (session.phase === 'testing' && session.date < today()) {
-      // 날짜가 지난 세션 → 자동 마무리
       autoFinalizeSession(session)
     } else if (session.phase === 'testing') {
       setLocalSession(session)
@@ -39,6 +57,11 @@ export default function TestPage() {
   }, [session]) // eslint-disable-line
 
   async function autoFinalizeSession(sess) {
+    try {
+      sessionStorage.removeItem('test-local-session')
+      sessionStorage.removeItem('test-word-phase')
+      sessionStorage.removeItem('test-answer')
+    } catch {}
     const items = sess.testItems ?? []
     if (items.length > 0) {
       await runFinalize(items, sess)
@@ -94,6 +117,11 @@ export default function TestPage() {
     setWordPhase('input')
     setAnswer('')
     setPhase('testing')
+    try {
+      sessionStorage.setItem('test-local-session', JSON.stringify(newSession))
+      sessionStorage.setItem('test-word-phase', 'input')
+      sessionStorage.removeItem('test-answer')
+    } catch {}
     await refresh()
   }
 
@@ -101,6 +129,10 @@ export default function TestPage() {
   function handleSubmit() {
     if (!answer.trim() || !currentWord) return
     setWordPhase('revealed')
+    try {
+      sessionStorage.setItem('test-word-phase', 'revealed')
+      sessionStorage.setItem('test-answer', answer.trim())
+    } catch {}
   }
 
   // ── GRADE O/X → save & next word ─────────────────────────────
@@ -121,12 +153,21 @@ export default function TestPage() {
     setAnswer('')
     setWordPhase('input')
     setLocalSession(updated)
+    try {
+      sessionStorage.setItem('test-local-session', JSON.stringify(updated))
+      sessionStorage.setItem('test-word-phase', 'input')
+      sessionStorage.removeItem('test-answer')
+    } catch {}
     await saveSession(user.uid, updated)
   }
 
   // ── 일시정지 ──────────────────────────────────────────────────
   async function handlePause() {
-    // Session is already saved — just go back to setup
+    try {
+      sessionStorage.removeItem('test-local-session')
+      sessionStorage.removeItem('test-word-phase')
+      sessionStorage.removeItem('test-answer')
+    } catch {}
     setPhase('setup')
     setWordPhase('input')
     setAnswer('')
@@ -135,6 +176,11 @@ export default function TestPage() {
 
   // ── 오늘 시험 마무리 ──────────────────────────────────────────
   async function handleFinish() {
+    try {
+      sessionStorage.removeItem('test-local-session')
+      sessionStorage.removeItem('test-word-phase')
+      sessionStorage.removeItem('test-answer')
+    } catch {}
     const cycleComplete = await runFinalize(localSession.testItems, localSession)
     await refresh()
     setResult({
