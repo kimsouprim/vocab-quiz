@@ -42,13 +42,14 @@ export function DataProvider({ children }) {
     }
   }, [user, refresh])
 
-  const allWords = words
+  const allWords = words.filter((w) => w.status !== 'digested')
   const correctWords = words.filter((w) => w.status === 'correct')
   const incorrectWords = words.filter((w) => w.status === 'incorrect')
+  const digestedWords = words.filter((w) => w.status === 'digested')
 
   return (
     <DataContext.Provider value={{
-      words, allWords, correctWords, incorrectWords,
+      words, allWords, correctWords, incorrectWords, digestedWords,
       cycle, session, tests,
       loading, refresh, setWords,
     }}>

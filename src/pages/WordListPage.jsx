@@ -4,21 +4,22 @@ import { useAuth } from '../contexts/AuthContext'
 import { useData } from '../contexts/DataContext'
 
 const LIST_TYPES = [
-  { key: 'all', label: '전체 단어장', color: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
-  { key: 'correct', label: '정답 단어장', color: 'bg-green-50 text-green-700 border-green-200' },
-  { key: 'incorrect', label: '오답 단어장', color: 'bg-red-50 text-red-700 border-red-200' },
+  { key: 'all',      label: '전체 단어장',    color: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
+  { key: 'correct',  label: '정답 단어장',    color: 'bg-green-50 text-green-700 border-green-200' },
+  { key: 'incorrect',label: '오답 단어장',    color: 'bg-red-50 text-red-700 border-red-200' },
+  { key: 'digested', label: '소화한 단어장',  color: 'bg-purple-50 text-purple-700 border-purple-200' },
 ]
 
 export default function WordListPage() {
   const navigate = useNavigate()
   const { logout } = useAuth()
-  const { allWords, correctWords, incorrectWords, loading } = useData()
+  const { allWords, correctWords, incorrectWords, digestedWords, loading } = useData()
   const [active, setActive] = useState('all')
   const [expanded, setExpanded] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState('default') // default | alpha-asc | alpha-desc | incorrect-asc | incorrect-desc
 
-  const listMap = { all: allWords, correct: correctWords, incorrect: incorrectWords }
+  const listMap = { all: allWords, correct: correctWords, incorrect: incorrectWords, digested: digestedWords }
   const rawWords = listMap[active] ?? []
   const q = searchQuery.trim().toLowerCase()
 
@@ -45,6 +46,11 @@ export default function WordListPage() {
     if (sortBy === 'alpha-desc')     return [...baseWords].sort((a, b) => b.word.localeCompare(a.word))
     if (sortBy === 'incorrect-asc')  return [...baseWords].sort((a, b) => a.incorrectCount - b.incorrectCount)
     if (sortBy === 'incorrect-desc') return [...baseWords].sort((a, b) => b.incorrectCount - a.incorrectCount)
+    if (sortBy === 'new-first')      return [...baseWords].sort((a, b) => {
+      const ta = a.createdAt?.toDate?.()?.getTime() ?? 0
+      const tb = b.createdAt?.toDate?.()?.getTime() ?? 0
+      return tb - ta
+    })
     // default: 오답 단어장은 예문 필요 단어 우선, 나머지는 랜덤
     if (!q && active === 'incorrect') {
       return [...baseWords].sort((a, b) => {
@@ -128,6 +134,7 @@ export default function WordListPage() {
       <div className="flex gap-1.5 px-4 mb-3 overflow-x-auto">
         {[
           { key: 'default',        label: '기본순' },
+          { key: 'new-first',      label: '최근 추가순' },
           { key: 'alpha-asc',      label: 'A→Z' },
           { key: 'alpha-desc',     label: 'Z→A' },
           { key: 'incorrect-desc', label: '오답 많은순' },

@@ -96,12 +96,24 @@ export default function TestPage() {
     let cycleData = await getCycle(user.uid)
 
     if (!cycleData?.activeList || cycleData.activeList !== listType || cycleData.remainingWordIds.length === 0) {
-      const wordIds = listMap[listType].map((w) => w.id)
-      if (wordIds.length < MIN_WORDS) {
-        alert(`${listLabels[listType]}에 단어가 ${MIN_WORDS}개 이상 있어야 해요. (현재 ${wordIds.length}개)`)
+      const wordsForList = listMap[listType]
+      if (wordsForList.length < MIN_WORDS) {
+        alert(`${listLabels[listType]}에 단어가 ${MIN_WORDS}개 이상 있어야 해요. (현재 ${wordsForList.length}개)`)
         return
       }
-      await startCycle(user.uid, listType, shuffle(wordIds))
+
+      let wordIds
+      if (listType === 'all') {
+        // 전체 단어장: 이전 사이클 시작 이후 추가된 신규 단어를 앞에 배치
+        const lastStartedAt = cycleData?.startedAt?.toDate?.() ?? new Date(0)
+        const newWords = wordsForList.filter((w) => (w.createdAt?.toDate?.() ?? new Date(0)) > lastStartedAt)
+        const oldWords = wordsForList.filter((w) => (w.createdAt?.toDate?.() ?? new Date(0)) <= lastStartedAt)
+        wordIds = [...shuffle(newWords.map((w) => w.id)), ...shuffle(oldWords.map((w) => w.id))]
+      } else {
+        wordIds = shuffle(wordsForList.map((w) => w.id))
+      }
+
+      await startCycle(user.uid, listType, wordIds)
       cycleData = await getCycle(user.uid)
     }
 
@@ -133,6 +145,32 @@ export default function TestPage() {
       sessionStorage.setItem('test-word-phase', 'revealed')
       sessionStorage.setItem('test-answer', answer.trim())
     } catch {}
+  }
+
+  // ── 소화한 단어장으로 이동 (정답 단어장에서만) ─────────────────
+  async function handleDigest() {
+    if (!currentWord) return
+    const item = {
+      wordId: currentWord.id,
+      word: currentWord.word,
+      meaning: currentWord.meaning,
+      examples: currentWord.examples,
+      incorrectCount: currentWord.incorrectCount,
+      userAnswer: answer.trim(),
+      isCorrect: true,
+      isDigested: true,
+    }
+    const newItems = [...(localSession?.testItems ?? []), item]
+    const updated = { ...localSession, testItems: newItems }
+    setAnswer('')
+    setWordPhase('input')
+    setLocalSession(updated)
+    try {
+      sessionStorage.setItem('test-local-session', JSON.stringify(updated))
+      sessionStorage.setItem('test-word-phase', 'input')
+      sessionStorage.removeItem('test-answer')
+    } catch {}
+    await saveSession(user.uid, updated)
   }
 
   // ── GRADE O/X → save & next word ─────────────────────────────
@@ -200,8 +238,8 @@ export default function TestPage() {
 
     const updates = items.map((item) => ({
       id: item.wordId,
-      status: item.isCorrect ? 'correct' : 'incorrect',
-      ...(item.isCorrect ? {} : { incorrectCount: item.incorrectCount + 1 }),
+      status: item.isDigested ? 'digested' : (item.isCorrect ? 'correct' : 'incorrect'),
+      ...(item.isCorrect || item.isDigested ? {} : { incorrectCount: item.incorrectCount + 1 }),
     }))
     await batchUpdateWords(user.uid, updates)
 
@@ -274,6 +312,7 @@ export default function TestPage() {
         onAnswerChange={setAnswer}
         onSubmit={handleSubmit}
         onGrade={handleGrade}
+        onDigest={handleDigest}
         onPause={handlePause}
         onFinish={handleFinish}
         wordPhase={wordPhase}
@@ -281,6 +320,7 @@ export default function TestPage() {
         canStop={canStop}
         remaining={wordPool.length}
         inputRef={inputRef}
+        listType={localSession?.wordListType}
         listLabel={listLabels[localSession?.wordListType]}
         prevItems={localSession?.testItems ?? []}
       />
@@ -378,9 +418,9 @@ function SetupView({ cycle, listLabels, listMap, onStart, pausedSession, onResum
 // ── TESTING ───────────────────────────────────────────────────
 
 function TestingView({
-  word, answer, onAnswerChange, onSubmit, onGrade,
-  onPause, onFinish, wordPhase, answeredCount, canStop, remaining, inputRef, listLabel,
-  prevItems,
+  word, answer, onAnswerChange, onSubmit, onGrade, onDigest,
+  onPause, onFinish, wordPhase, answeredCount, canStop, remaining, inputRef,
+  listType, listLabel, prevItems,
 }) {
   const navigate = useNavigate()
   const [showPrev, setShowPrev] = useState(false)
@@ -520,6 +560,15 @@ function TestingView({
                 ○ 정답
               </button>
             </div>
+            {/* 소화한 단어장으로 이동 (정답 단어장에서만) */}
+            {listType === 'correct' && (
+              <button
+                onClick={onDigest}
+                className="w-full py-3 bg-purple-50 border border-purple-200 text-purple-600 rounded-2xl text-sm font-medium active:scale-95 transition-all"
+              >
+                ✓ 더이상 시험 안 볼게요 → 소화한 단어장
+              </button>
+            )}
           </>
         )}
 
