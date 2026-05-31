@@ -12,7 +12,7 @@ const MIN_WORDS = 10
 export default function TestPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const { allWords, correctWords, incorrectWords, cycle, session, refresh } = useData()
+  const { allWords, correctWords, incorrectWords, cycle, session, loading, refresh } = useData()
 
   const [phase, setPhase] = useState('setup') // setup | testing | result
   const [localSession, setLocalSession] = useState(null)
@@ -29,8 +29,8 @@ export default function TestPage() {
   // sessionStorage 우선 복원 → 사전 탭 이동 후 돌아와도 진행 상태 유지
   const sessionRestored = useRef(false)
   useEffect(() => {
+    if (loading) return // DataContext 아직 로딩 중
     if (sessionRestored.current) return
-    if (session === undefined) return // 아직 DataContext 로딩 중
     sessionRestored.current = true
 
     // sessionStorage에 저장된 진행 상태가 있으면 우선 복원
@@ -48,13 +48,13 @@ export default function TestPage() {
     // sessionStorage 없으면 Firestore 세션으로 복원
     if (!session?.phase) return
     if (session.phase === 'testing' && session.date < today()) {
-      autoFinalizeSession(session)
+      autoFinalizeSession(session) // 날짜 지난 세션 자동 마무리
     } else if (session.phase === 'testing') {
       setLocalSession(session)
       setPhase('testing')
       setWordPhase('input')
     }
-  }, [session]) // eslint-disable-line
+  }, [loading, session]) // eslint-disable-line
 
   async function autoFinalizeSession(sess) {
     try {
@@ -131,8 +131,8 @@ export default function TestPage() {
 
       await startCycle(user.uid, listType, wordIds)
     } else if (listType === 'all') {
-      // 기존 사이클 진행 중: 새로 추가된 단어가 있으면 앞에 삽입
-      await injectNewWordsIfAny(cycleData)
+      // 기존 사이클 진행 중: 새로 추가된 단어가 있으면 앞에 삽입 (실패해도 시험은 계속)
+      try { await injectNewWordsIfAny(cycleData) } catch {}
     }
 
     cycleData = await getCycle(user.uid)
@@ -234,6 +234,7 @@ export default function TestPage() {
 
   // ── 오늘 시험 마무리 ──────────────────────────────────────────
   async function handleFinish() {
+    if (!localSession?.testItems?.length) return // 안전 가드
     try {
       sessionStorage.removeItem('test-local-session')
       sessionStorage.removeItem('test-word-phase')
@@ -290,12 +291,7 @@ export default function TestPage() {
         listMap={listMap}
         onStart={handleStart}
         pausedSession={session?.phase === 'testing' ? session : null}
-        onResume={async () => {
-          // 전체단어장 재개 시 신규 단어 삽입
-          if (session?.wordListType === 'all' && cycle) {
-            const inserted = await injectNewWordsIfAny(cycle)
-            if (inserted) await refresh()
-          }
+        onResume={() => {
           setLocalSession(session)
           setPhase('testing')
           setWordPhase('input')
