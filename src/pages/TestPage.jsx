@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useData } from '../contexts/DataContext'
-import { getCycle, startCycle, removeFromCycle, clearCycle } from '../firebase/cycleService'
+import { getCycle, startCycle, removeFromCycle, clearCycle, insertWordsAtFront } from '../firebase/cycleService'
 import { getSession, saveSession, clearSession, saveTest } from '../firebase/testService'
 import { batchUpdateWords } from '../firebase/wordService'
 import { today } from '../utils/dateUtils'
@@ -90,13 +90,29 @@ export default function TestPage() {
   const answeredCount = localSession?.testItems?.length ?? 0
   const canStop = answeredCount > 0 && answeredCount % 5 === 0
 
+  // 전체단어장 사이클에 신규 단어(사이클 시작 이후 추가된 단어)를 앞에 삽입
+  async function injectNewWordsIfAny(cycleData) {
+    const cycleStart = cycleData?.startedAt?.toDate?.() ?? new Date(0)
+    const remainingSet = new Set(cycleData?.remainingWordIds ?? [])
+    const newlyAdded = allWords.filter((w) => {
+      const created = w.createdAt?.toDate?.() ?? new Date(0)
+      return created > cycleStart && !remainingSet.has(w.id)
+    })
+    if (newlyAdded.length > 0) {
+      await insertWordsAtFront(user.uid, shuffle(newlyAdded.map((w) => w.id)))
+      return true // 삽입됨
+    }
+    return false
+  }
+
   // ── START TEST ────────────────────────────────────────────────
   async function handleStart(listType) {
     const dateStr = today()
+    const wordsForList = listMap[listType]
     let cycleData = await getCycle(user.uid)
 
     if (!cycleData?.activeList || cycleData.activeList !== listType || cycleData.remainingWordIds.length === 0) {
-      const wordsForList = listMap[listType]
+      // 새 사이클 시작
       if (wordsForList.length < MIN_WORDS) {
         alert(`${listLabels[listType]}에 단어가 ${MIN_WORDS}개 이상 있어야 해요. (현재 ${wordsForList.length}개)`)
         return
@@ -104,7 +120,7 @@ export default function TestPage() {
 
       let wordIds
       if (listType === 'all') {
-        // 전체 단어장: 이전 사이클 시작 이후 추가된 신규 단어를 앞에 배치
+        // 이전 사이클 이후 추가된 신규 단어를 앞에 배치
         const lastStartedAt = cycleData?.startedAt?.toDate?.() ?? new Date(0)
         const newWords = wordsForList.filter((w) => (w.createdAt?.toDate?.() ?? new Date(0)) > lastStartedAt)
         const oldWords = wordsForList.filter((w) => (w.createdAt?.toDate?.() ?? new Date(0)) <= lastStartedAt)
@@ -114,8 +130,12 @@ export default function TestPage() {
       }
 
       await startCycle(user.uid, listType, wordIds)
-      cycleData = await getCycle(user.uid)
+    } else if (listType === 'all') {
+      // 기존 사이클 진행 중: 새로 추가된 단어가 있으면 앞에 삽입
+      await injectNewWordsIfAny(cycleData)
     }
+
+    cycleData = await getCycle(user.uid)
 
     const newSession = {
       date: dateStr,
@@ -270,7 +290,12 @@ export default function TestPage() {
         listMap={listMap}
         onStart={handleStart}
         pausedSession={session?.phase === 'testing' ? session : null}
-        onResume={() => {
+        onResume={async () => {
+          // 전체단어장 재개 시 신규 단어 삽입
+          if (session?.wordListType === 'all' && cycle) {
+            const inserted = await injectNewWordsIfAny(cycle)
+            if (inserted) await refresh()
+          }
           setLocalSession(session)
           setPhase('testing')
           setWordPhase('input')

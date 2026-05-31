@@ -25,6 +25,18 @@ export async function removeFromCycle(uid, testedWordIds) {
   return remaining
 }
 
+// 신규 단어를 사이클 앞에 삽입 (기존 사이클 진행 중에도 신규 단어 우선 출제)
+export async function insertWordsAtFront(uid, wordIds) {
+  const cycle = await getCycle(uid)
+  if (!cycle) return
+  const existingSet = new Set(cycle.remainingWordIds)
+  const toInsert = wordIds.filter((id) => !existingSet.has(id))
+  if (toInsert.length === 0) return
+  await updateDoc(cycleDoc(uid), {
+    remainingWordIds: [...toInsert, ...cycle.remainingWordIds],
+  })
+}
+
 export async function clearCycle(uid) {
   await setDoc(cycleDoc(uid), {
     activeList: null,
