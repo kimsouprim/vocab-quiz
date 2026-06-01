@@ -556,9 +556,9 @@ function TestingView({
               </div>
               <p className="text-base font-semibold text-gray-900">{word.meaning}</p>
               {word.examples.length > 0 && (
-                <div className="mt-2 space-y-1">
+                <div className="mt-3 space-y-2">
                   {word.examples.map((ex, i) => (
-                    <p key={i} className="text-xs text-gray-500">
+                    <p key={i} className="text-sm text-gray-700 leading-relaxed">
                       <span className="text-gray-400 mr-1">{i + 1}.</span>{ex}
                     </p>
                   ))}
