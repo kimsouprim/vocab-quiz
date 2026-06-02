@@ -89,7 +89,7 @@ export default function TestPage() {
   }, [phase, wordPhase, localSession?.testItems?.length])
 
   // Current word from cycle
-  const cycleRemaining = cycle?.remainingWordIds ?? localSession?.remainingAtStart ?? []
+  const cycleRemaining = localSession?.remainingAtStart ?? cycle?.remainingWordIds ?? []
   const answeredIds = new Set((localSession?.testItems ?? []).map((i) => i.wordId))
   const wordPool = cycleRemaining
     .filter((id) => !answeredIds.has(id))
@@ -102,12 +102,9 @@ export default function TestPage() {
 
   // 전체단어장 사이클에 신규 단어(사이클 시작 이후 추가된 단어)를 앞에 삽입
   async function injectNewWordsIfAny(cycleData) {
-    const cycleStart = toDate(cycleData?.startedAt)
     const remainingSet = new Set(cycleData?.remainingWordIds ?? [])
-    const newlyAdded = allWords.filter((w) => {
-      const created = toDate(w.createdAt)
-      return created > cycleStart && !remainingSet.has(w.id)
-    })
+    // status === 'untested': 아직 한 번도 시험 안 본 단어 = 새로 추가된 단어
+    const newlyAdded = allWords.filter((w) => w.status === 'untested' && !remainingSet.has(w.id))
     if (newlyAdded.length > 0) {
       await insertWordsAtFront(user.uid, shuffle(newlyAdded.map((w) => w.id)))
       return true // 삽입됨
@@ -130,11 +127,10 @@ export default function TestPage() {
 
       let wordIds
       if (listType === 'all') {
-        // 이전 사이클 이후 추가된 신규 단어를 앞에 배치
-        const lastStartedAt = toDate(cycleData?.startedAt)
-        const newWords = wordsForList.filter((w) => toDate(w.createdAt) > lastStartedAt)
-        const oldWords = wordsForList.filter((w) => toDate(w.createdAt) <= lastStartedAt)
-        wordIds = [...shuffle(newWords.map((w) => w.id)), ...shuffle(oldWords.map((w) => w.id))]
+        // untested(한 번도 시험 안 본) 단어를 앞에 배치 → 새로 추가된 단어 우선 출제
+        const untested = wordsForList.filter((w) => w.status === 'untested')
+        const tested   = wordsForList.filter((w) => w.status !== 'untested')
+        wordIds = [...shuffle(untested.map((w) => w.id)), ...shuffle(tested.map((w) => w.id))]
       } else {
         wordIds = shuffle(wordsForList.map((w) => w.id))
       }
