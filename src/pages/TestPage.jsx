@@ -102,10 +102,10 @@ export default function TestPage() {
 
   // 전체단어장 사이클에 신규 단어(사이클 시작 이후 추가된 단어)를 앞에 삽입
   async function injectNewWordsIfAny(cycleData) {
-    const cycleStart = cycleData?.startedAt?.toDate?.() ?? new Date(0)
+    const cycleStart = toDate(cycleData?.startedAt)
     const remainingSet = new Set(cycleData?.remainingWordIds ?? [])
     const newlyAdded = allWords.filter((w) => {
-      const created = w.createdAt?.toDate?.() ?? new Date(0)
+      const created = toDate(w.createdAt)
       return created > cycleStart && !remainingSet.has(w.id)
     })
     if (newlyAdded.length > 0) {
@@ -131,9 +131,9 @@ export default function TestPage() {
       let wordIds
       if (listType === 'all') {
         // 이전 사이클 이후 추가된 신규 단어를 앞에 배치
-        const lastStartedAt = cycleData?.startedAt?.toDate?.() ?? new Date(0)
-        const newWords = wordsForList.filter((w) => (w.createdAt?.toDate?.() ?? new Date(0)) > lastStartedAt)
-        const oldWords = wordsForList.filter((w) => (w.createdAt?.toDate?.() ?? new Date(0)) <= lastStartedAt)
+        const lastStartedAt = toDate(cycleData?.startedAt)
+        const newWords = wordsForList.filter((w) => toDate(w.createdAt) > lastStartedAt)
+        const oldWords = wordsForList.filter((w) => toDate(w.createdAt) <= lastStartedAt)
         wordIds = [...shuffle(newWords.map((w) => w.id)), ...shuffle(oldWords.map((w) => w.id))]
       } else {
         wordIds = shuffle(wordsForList.map((w) => w.id))
@@ -672,6 +672,14 @@ function ResultView({ result, listLabels, onDone }) {
       </button>
     </div>
   )
+}
+
+// Firestore Timestamp과 JS Date 모두 처리
+function toDate(val) {
+  if (!val) return new Date(0)
+  if (typeof val.toDate === 'function') return val.toDate() // Firestore Timestamp
+  if (val instanceof Date) return val                        // JS Date
+  return new Date(0)
 }
 
 function shuffle(arr) {
