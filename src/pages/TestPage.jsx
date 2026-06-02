@@ -7,7 +7,6 @@ import { getSession, saveSession, clearSession, saveTest } from '../firebase/tes
 import { batchUpdateWords } from '../firebase/wordService'
 import { today } from '../utils/dateUtils'
 
-const MIN_WORDS = 10
 
 export default function TestPage() {
   const { user } = useAuth()
@@ -131,8 +130,8 @@ export default function TestPage() {
 
     if (!cycleData?.activeList || cycleData.activeList !== listType || cycleData.remainingWordIds.length === 0) {
       // 새 사이클 시작
-      if (wordsForList.length < MIN_WORDS) {
-        alert(`${listLabels[listType]}에 단어가 ${MIN_WORDS}개 이상 있어야 해요. (현재 ${wordsForList.length}개)`)
+      if (wordsForList.length === 0) {
+        alert(`${listLabels[listType]}에 단어가 없어요.`)
         return
       }
 
@@ -316,9 +315,7 @@ export default function TestPage() {
       return (
         <div className="min-h-screen flex flex-col items-center justify-center px-6 gap-4">
           <p className="text-4xl">🎉</p>
-          <p className="text-gray-700 font-semibold text-center">
-            {answeredCount >= MIN_WORDS ? '사이클 완료! 모든 단어를 풀었어요.' : '이 사이클의 모든 단어를 다 풀었어요!'}
-          </p>
+          <p className="text-gray-700 font-semibold text-center">사이클 완료! 모든 단어를 풀었어요.</p>
           <button
             onClick={handleStop}
             disabled={isStopping}
@@ -416,7 +413,7 @@ function SetupView({ cycle, listLabels, listMap, onStart }) {
       </div>
 
       <p className="mt-6 text-xs text-gray-400 text-center">
-        최소 {MIN_WORDS}개 · 1개 이상 답하면 언제든 중단 가능
+        1개 이상 답하면 언제든 중단 가능
       </p>
     </div>
   )
