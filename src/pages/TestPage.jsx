@@ -67,11 +67,16 @@ export default function TestPage() {
       sessionStorage.removeItem('test-word-phase')
       sessionStorage.removeItem('test-answer')
     } catch {}
-    const items = sess.testItems ?? []
-    if (items.length > 0) {
-      await runFinalize(items, sess)
-    } else {
-      await clearSession(user.uid)
+    try {
+      const items = sess.testItems ?? []
+      if (items.length > 0) {
+        await runFinalize(items, sess)
+      } else {
+        await clearSession(user.uid)
+      }
+    } catch {
+      // runFinalize 실패해도 세션은 반드시 지움
+      await clearSession(user.uid).catch(() => {})
     }
     await refresh()
   }
@@ -271,7 +276,8 @@ export default function TestPage() {
 
     const testedIds = items.map((i) => i.wordId)
     const remaining = await removeFromCycle(user.uid, testedIds)
-    if (remaining.length === 0) await clearCycle(user.uid)
+    const cycleComplete = remaining != null && remaining.length === 0
+    if (cycleComplete) await clearCycle(user.uid)
 
     // 같은 날 같은 단어장이면 합산, 다른 단어장이면 별도 저장
     await saveTest(user.uid, sess.date, sess.wordListType, {
@@ -284,7 +290,7 @@ export default function TestPage() {
     })
 
     await clearSession(user.uid)
-    return remaining.length === 0 // cycleComplete
+    return cycleComplete
   }
 
   // ── RENDER ────────────────────────────────────────────────────
