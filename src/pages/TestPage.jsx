@@ -20,6 +20,7 @@ export default function TestPage() {
   const [wordPhase, setWordPhase] = useState('input')
   const [answer, setAnswer] = useState('')
   const [result, setResult] = useState(null)
+  const [isStopping, setIsStopping] = useState(false)
   const inputRef = useRef(null)
 
   const listMap = { all: allWords, correct: correctWords, incorrect: incorrectWords }
@@ -98,7 +99,6 @@ export default function TestPage() {
   const currentWord = wordPool[0] ?? null
 
   const answeredCount = localSession?.testItems?.length ?? 0
-  const canStop = answeredCount > 0 && answeredCount % 5 === 0
 
   // 전체단어장 사이클에 신규 단어(사이클 시작 이후 추가된 단어)를 앞에 삽입
   async function injectNewWordsIfAny(cycleData) {
@@ -225,42 +225,34 @@ export default function TestPage() {
     await saveSession(user.uid, updated)
   }
 
-  // ── 일시정지 ──────────────────────────────────────────────────
-  async function handlePause() {
-    try {
-      sessionStorage.removeItem('test-local-session')
-      sessionStorage.removeItem('test-word-phase')
-      sessionStorage.removeItem('test-answer')
-    } catch {}
-    setPhase('setup')
-    setWordPhase('input')
-    setAnswer('')
-    await refresh()
-  }
-
-  // ── 오늘 시험 마무리 ──────────────────────────────────────────
-  async function handleFinish() {
+  // ── 시험 중단 (기록 저장 후 결과 화면) ───────────────────────
+  async function handleStop() {
     if (!localSession?.testItems?.length) return // 안전 가드
+    if (isStopping) return                        // 중복 호출 방지
+    setIsStopping(true)
     try {
       sessionStorage.removeItem('test-local-session')
       sessionStorage.removeItem('test-word-phase')
       sessionStorage.removeItem('test-answer')
     } catch {}
+    const items = localSession.testItems
     let cycleComplete = false
     try {
-      cycleComplete = await runFinalize(localSession.testItems, localSession)
+      cycleComplete = await runFinalize(items, localSession)
     } catch (e) {
-      console.error('[handleFinish] runFinalize error:', e)
+      console.error('[handleStop] runFinalize error:', e)
       await clearSession(user.uid).catch(() => {})
     }
     await refresh().catch(() => {})
     setResult({
-      correctCount: localSession.testItems.filter((i) => i.isCorrect).length,
-      incorrectCount: localSession.testItems.filter((i) => !i.isCorrect).length,
-      totalCount: localSession.testItems.length,
+      correctCount: items.filter((i) => i.isCorrect && !i.isDigested).length,
+      incorrectCount: items.filter((i) => !i.isCorrect && !i.isDigested).length,
+      digestedCount: items.filter((i) => i.isDigested).length,
+      totalCount: items.length,
       listType: localSession.wordListType,
       cycleComplete,
     })
+    setIsStopping(false)
     setPhase('result')
   }
 
@@ -303,37 +295,25 @@ export default function TestPage() {
         listLabels={listLabels}
         listMap={listMap}
         onStart={handleStart}
-        pausedSession={session?.phase === 'testing' ? session : null}
-        onResume={() => {
-          setLocalSession(session)
-          setPhase('testing')
-          setWordPhase('input')
-          setAnswer('')
-        }}
       />
     )
   }
 
   if (phase === 'testing') {
-    // All cycle words done mid-session
-    if (!currentWord && answeredCount < MIN_WORDS) {
-      return (
-        <div className="min-h-screen flex flex-col items-center justify-center px-6 gap-4">
-          <p className="text-gray-500 text-center">이 사이클의 모든 단어를 다 풀었어요!</p>
-          <button onClick={handleFinish} className="px-6 py-3 bg-primary-600 text-white rounded-xl font-semibold">
-            결과 보기
-          </button>
-        </div>
-      )
-    }
-
+    // 사이클 단어를 모두 풀었을 때
     if (!currentWord) {
       return (
         <div className="min-h-screen flex flex-col items-center justify-center px-6 gap-4">
-          <p className="text-2xl">🎉</p>
-          <p className="text-gray-700 font-semibold">사이클 완료! 모든 단어를 풀었어요.</p>
-          <button onClick={handleFinish} className="px-6 py-3 bg-primary-600 text-white rounded-xl font-semibold">
-            오늘 시험 마무리
+          <p className="text-4xl">🎉</p>
+          <p className="text-gray-700 font-semibold text-center">
+            {answeredCount >= MIN_WORDS ? '사이클 완료! 모든 단어를 풀었어요.' : '이 사이클의 모든 단어를 다 풀었어요!'}
+          </p>
+          <button
+            onClick={handleStop}
+            disabled={isStopping}
+            className="px-6 py-3 bg-primary-600 text-white rounded-xl font-semibold disabled:opacity-50"
+          >
+            {isStopping ? '저장 중...' : '결과 저장'}
           </button>
         </div>
       )
@@ -347,11 +327,10 @@ export default function TestPage() {
         onSubmit={handleSubmit}
         onGrade={handleGrade}
         onDigest={handleDigest}
-        onPause={handlePause}
-        onFinish={handleFinish}
+        onStop={handleStop}
         wordPhase={wordPhase}
         answeredCount={answeredCount}
-        canStop={canStop}
+        isStopping={isStopping}
         remaining={wordPool.length}
         inputRef={inputRef}
         listType={localSession?.wordListType}
@@ -381,7 +360,7 @@ export default function TestPage() {
 
 // ── SETUP ─────────────────────────────────────────────────────
 
-function SetupView({ cycle, listLabels, listMap, onStart, pausedSession, onResume }) {
+function SetupView({ cycle, listLabels, listMap, onStart }) {
   const LIST_CONFIGS = [
     { key: 'all', icon: '📚', color: 'border-indigo-200 bg-indigo-50', badge: 'bg-indigo-100 text-indigo-700' },
     { key: 'correct', icon: '✅', color: 'border-green-200 bg-green-50', badge: 'bg-green-100 text-green-700' },
@@ -391,21 +370,6 @@ function SetupView({ cycle, listLabels, listMap, onStart, pausedSession, onResum
   return (
     <div className="min-h-screen pb-24 pt-6 px-4 max-w-lg mx-auto">
       <h1 className="text-xl font-bold text-gray-900 mb-6">시험</h1>
-
-      {pausedSession && (
-        <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-2xl">
-          <p className="text-sm font-semibold text-yellow-800 mb-1">일시정지된 시험이 있어요</p>
-          <p className="text-xs text-yellow-600 mb-3">
-            {pausedSession.date} · {listLabels[pausedSession.wordListType]} · {pausedSession.testItems?.length ?? 0}개 완료
-          </p>
-          <button
-            onClick={onResume}
-            className="w-full py-2 bg-yellow-500 text-white rounded-xl text-sm font-semibold"
-          >
-            이어서 하기
-          </button>
-        </div>
-      )}
 
       {cycle?.activeList && (
         <div className="mb-4 p-3 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-600">
@@ -417,13 +381,11 @@ function SetupView({ cycle, listLabels, listMap, onStart, pausedSession, onResum
         {LIST_CONFIGS.map(({ key, icon, color, badge }) => {
           const count = listMap[key].length
           const isActive = cycle?.activeList === key
-          const blocked = pausedSession && cycle?.activeList !== key
           return (
             <button
               key={key}
-              onClick={() => !blocked && onStart(key)}
-              disabled={!!blocked}
-              className={`w-full p-4 rounded-2xl border-2 text-left transition-all active:scale-[0.98] disabled:opacity-40 ${color}`}
+              onClick={() => onStart(key)}
+              className={`w-full p-4 rounded-2xl border-2 text-left transition-all active:scale-[0.98] ${color}`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -443,7 +405,7 @@ function SetupView({ cycle, listLabels, listMap, onStart, pausedSession, onResum
       </div>
 
       <p className="mt-6 text-xs text-gray-400 text-center">
-        최소 {MIN_WORDS}개 · 10개 이후 언제든 중단 가능
+        최소 {MIN_WORDS}개 · 1개 이상 답하면 언제든 중단 가능
       </p>
     </div>
   )
@@ -453,7 +415,7 @@ function SetupView({ cycle, listLabels, listMap, onStart, pausedSession, onResum
 
 function TestingView({
   word, answer, onAnswerChange, onSubmit, onGrade, onDigest,
-  onPause, onFinish, wordPhase, answeredCount, canStop, remaining, inputRef,
+  onStop, wordPhase, answeredCount, isStopping, remaining, inputRef,
   listType, listLabel, prevItems,
 }) {
   const navigate = useNavigate()
@@ -606,22 +568,15 @@ function TestingView({
           </>
         )}
 
-        {/* Stop options — shown every 5 words, between words */}
-        {answeredCount > 0 && answeredCount % 5 === 0 && wordPhase === 'input' && (
-          <div className="flex gap-2 pt-2">
-            <button
-              onClick={onPause}
-              className="flex-1 py-3 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium active:scale-95 transition-all"
-            >
-              ⏸ 일시정지
-            </button>
-            <button
-              onClick={onFinish}
-              className="flex-1 py-3 bg-indigo-600 text-white rounded-xl text-sm font-medium active:scale-95 transition-all"
-            >
-              ✓ 오늘 시험 마무리
-            </button>
-          </div>
+        {/* 중단 버튼 — 1개 이상 답하면 항상 노출 */}
+        {answeredCount > 0 && wordPhase === 'input' && (
+          <button
+            onClick={onStop}
+            disabled={isStopping}
+            className="w-full py-3 bg-gray-100 text-gray-500 rounded-xl text-sm font-medium active:scale-95 transition-all border border-gray-200 disabled:opacity-50"
+          >
+            {isStopping ? '저장 중...' : '■ 중단하고 기록 저장'}
+          </button>
         )}
       </div>
     </div>
@@ -631,7 +586,8 @@ function TestingView({
 // ── RESULT ────────────────────────────────────────────────────
 
 function ResultView({ result, listLabels, onDone }) {
-  const pct = Math.round((result.correctCount / result.totalCount) * 100)
+  const gradedCount = result.correctCount + result.incorrectCount
+  const pct = gradedCount > 0 ? Math.round((result.correctCount / gradedCount) * 100) : 0
   return (
     <div className="min-h-screen flex flex-col items-center justify-center pb-24 px-6 max-w-lg mx-auto">
       <div className="text-5xl mb-4">{pct >= 80 ? '🎉' : pct >= 50 ? '📝' : '💪'}</div>
@@ -652,16 +608,22 @@ function ResultView({ result, listLabels, onDone }) {
             <p className="text-2xl font-bold text-red-400">{result.incorrectCount}</p>
             <p className="text-xs text-gray-400 mt-1">오답</p>
           </div>
+          {result.digestedCount > 0 && (
+            <div className="text-center">
+              <p className="text-2xl font-bold text-purple-500">{result.digestedCount}</p>
+              <p className="text-xs text-gray-400 mt-1">소화</p>
+            </div>
+          )}
           <div className="text-center">
             <p className="text-2xl font-bold text-gray-600">{result.totalCount}</p>
-            <p className="text-xs text-gray-400 mt-1">총 단어</p>
+            <p className="text-xs text-gray-400 mt-1">총</p>
           </div>
         </div>
       </div>
 
       {result.cycleComplete && (
         <div className="w-full p-4 bg-indigo-50 border border-indigo-100 rounded-2xl mb-6 text-center">
-          <p className="text-sm font-semibold text-indigo-700">사이클 완료!</p>
+          <p className="text-sm font-semibold text-indigo-700">🎊 사이클 완료!</p>
           <p className="text-xs text-indigo-500 mt-1">모든 단어를 한 번씩 시험봤어요.</p>
         </div>
       )}
@@ -674,14 +636,6 @@ function ResultView({ result, listLabels, onDone }) {
       </button>
     </div>
   )
-}
-
-// Firestore Timestamp과 JS Date 모두 처리
-function toDate(val) {
-  if (!val) return new Date(0)
-  if (typeof val.toDate === 'function') return val.toDate() // Firestore Timestamp
-  if (val instanceof Date) return val                        // JS Date
-  return new Date(0)
 }
 
 function shuffle(arr) {
