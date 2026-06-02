@@ -246,8 +246,14 @@ export default function TestPage() {
       sessionStorage.removeItem('test-word-phase')
       sessionStorage.removeItem('test-answer')
     } catch {}
-    const cycleComplete = await runFinalize(localSession.testItems, localSession)
-    await refresh()
+    let cycleComplete = false
+    try {
+      cycleComplete = await runFinalize(localSession.testItems, localSession)
+    } catch (e) {
+      console.error('[handleFinish] runFinalize error:', e)
+      await clearSession(user.uid).catch(() => {})
+    }
+    await refresh().catch(() => {})
     setResult({
       correctCount: localSession.testItems.filter((i) => i.isCorrect).length,
       incorrectCount: localSession.testItems.filter((i) => !i.isCorrect).length,
