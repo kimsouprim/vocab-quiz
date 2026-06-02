@@ -25,15 +25,23 @@ export default function TestPage() {
   const listMap = { all: allWords, correct: correctWords, incorrect: incorrectWords }
   const listLabels = { all: '전체 단어장', correct: '정답 단어장', incorrect: '오답 단어장' }
 
-  // Restore in-progress session (날짜 바뀌면 자동 마무리)
-  // sessionStorage 우선 복원 → 사전 탭 이동 후 돌아와도 진행 상태 유지
+  // Restore in-progress session + 날짜 지난 세션 자동 마무리
   const sessionRestored = useRef(false)
+  const autoFinalizeStarted = useRef(false)
   useEffect(() => {
     if (loading) return // DataContext 아직 로딩 중
+
+    // ① 날짜 지난 Firestore 세션 → sessionStorage 유무와 관계없이 자동 마무리
+    if (!autoFinalizeStarted.current && session?.phase === 'testing' && session.date < today()) {
+      autoFinalizeStarted.current = true
+      autoFinalizeSession(session)
+    }
+
+    // ② 세션 복원은 한 번만
     if (sessionRestored.current) return
     sessionRestored.current = true
 
-    // sessionStorage에 저장된 진행 상태가 있으면 우선 복원
+    // sessionStorage에 오늘 진행 상태가 있으면 우선 복원
     try {
       const stored = JSON.parse(sessionStorage.getItem('test-local-session') ?? 'null')
       if (stored?.phase === 'testing' && stored.date === today()) {
@@ -45,11 +53,8 @@ export default function TestPage() {
       }
     } catch {}
 
-    // sessionStorage 없으면 Firestore 세션으로 복원
-    if (!session?.phase) return
-    if (session.phase === 'testing' && session.date < today()) {
-      autoFinalizeSession(session) // 날짜 지난 세션 자동 마무리
-    } else if (session.phase === 'testing') {
+    // sessionStorage 없고 오늘 날짜 Firestore 세션이면 복원
+    if (session?.phase === 'testing' && session.date === today()) {
       setLocalSession(session)
       setPhase('testing')
       setWordPhase('input')
