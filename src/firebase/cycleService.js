@@ -37,6 +37,11 @@ export async function insertWordsAtFront(uid, wordIds) {
   })
 }
 
+// 사이클 순서 전체 교체 (untested 재정렬 등에 사용)
+export async function setCycleRemainingIds(uid, newIds) {
+  await updateDoc(cycleDoc(uid), { remainingWordIds: newIds })
+}
+
 export async function clearCycle(uid) {
   await setDoc(cycleDoc(uid), {
     activeList: null,

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useData } from '../contexts/DataContext'
-import { getCycle, startCycle, removeFromCycle, clearCycle, insertWordsAtFront } from '../firebase/cycleService'
+import { getCycle, startCycle, removeFromCycle, clearCycle, insertWordsAtFront, setCycleRemainingIds } from '../firebase/cycleService'
 import { getSession, saveSession, clearSession, saveTest } from '../firebase/testService'
 import { batchUpdateWords } from '../firebase/wordService'
 import { today } from '../utils/dateUtils'
@@ -100,16 +100,27 @@ export default function TestPage() {
 
   const answeredCount = localSession?.testItems?.length ?? 0
 
-  // 전체단어장 사이클에 신규 단어(사이클 시작 이후 추가된 단어)를 앞에 삽입
+  // 전체단어장 사이클에서 untested 단어를 앞으로 재정렬
+  // - 사이클 미포함 신규 단어: 앞에 추가
+  // - 사이클 내 untested 단어: 앞으로 이동
+  // - 나머지(correct/incorrect): 뒤에 유지
   async function injectNewWordsIfAny(cycleData) {
-    const remainingSet = new Set(cycleData?.remainingWordIds ?? [])
-    // status === 'untested': 아직 한 번도 시험 안 본 단어 = 새로 추가된 단어
-    const newlyAdded = allWords.filter((w) => w.status === 'untested' && !remainingSet.has(w.id))
-    if (newlyAdded.length > 0) {
-      await insertWordsAtFront(user.uid, shuffle(newlyAdded.map((w) => w.id)))
-      return true // 삽입됨
-    }
-    return false
+    const remainingIds = cycleData?.remainingWordIds ?? []
+    const remainingSet = new Set(remainingIds)
+
+    const notInCycle  = allWords.filter((w) => w.status === 'untested' && !remainingSet.has(w.id))
+    const inCycleIds  = remainingIds.filter((id) => allWords.find((w) => w.id === id)?.status === 'untested')
+    const testedIds   = remainingIds.filter((id) => allWords.find((w) => w.id === id)?.status !== 'untested')
+
+    if (notInCycle.length === 0 && inCycleIds.length === 0) return false
+
+    const newOrder = [
+      ...shuffle(notInCycle.map((w) => w.id)), // 사이클 밖 신규
+      ...inCycleIds,                            // 사이클 내 untested (기존 순서 유지)
+      ...testedIds,                             // 나머지 (기존 순서 유지)
+    ]
+    await setCycleRemainingIds(user.uid, newOrder)
+    return true
   }
 
   // ── START TEST ────────────────────────────────────────────────
