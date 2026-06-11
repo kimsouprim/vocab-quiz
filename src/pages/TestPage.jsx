@@ -11,7 +11,7 @@ import { today } from '../utils/dateUtils'
 export default function TestPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const { allWords, correctWords, incorrectWords, cycle, session, loading, refresh } = useData()
+  const { allWords, correctWords, incorrectWords, digestedWords, cycle, session, loading, refresh } = useData()
 
   const [phase, setPhase] = useState('setup') // setup | testing | result
   const [localSession, setLocalSession] = useState(null)
@@ -91,8 +91,9 @@ export default function TestPage() {
   // Current word from cycle
   const cycleRemaining = localSession?.remainingAtStart ?? cycle?.remainingWordIds ?? []
   const answeredIds = new Set((localSession?.testItems ?? []).map((i) => i.wordId))
+  const digestedIds = new Set(digestedWords.map((w) => w.id))
   const wordPool = cycleRemaining
-    .filter((id) => !answeredIds.has(id))
+    .filter((id) => !answeredIds.has(id) && !digestedIds.has(id))
     .map((id) => allWords.find((w) => w.id === id))
     .filter(Boolean)
   const currentWord = wordPool[0] ?? null
@@ -160,6 +161,14 @@ export default function TestPage() {
     }
 
     cycleData = await getCycle(user.uid)
+
+    // 사이클에 남아있는 digested 단어 ID 정리 (방어적 클린업)
+    const digestedSet = new Set(digestedWords.map((w) => w.id))
+    const cleanRemaining = cycleData.remainingWordIds.filter((id) => !digestedSet.has(id))
+    if (cleanRemaining.length !== cycleData.remainingWordIds.length) {
+      await setCycleRemainingIds(user.uid, cleanRemaining).catch(() => {})
+      cycleData = { ...cycleData, remainingWordIds: cleanRemaining }
+    }
 
     const newSession = {
       date: dateStr,

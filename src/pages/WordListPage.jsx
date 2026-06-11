@@ -13,7 +13,7 @@ const LIST_TYPES = [
 export default function WordListPage() {
   const navigate = useNavigate()
   const { logout } = useAuth()
-  const { allWords, correctWords, incorrectWords, digestedWords, loading } = useData()
+  const { words, allWords, correctWords, incorrectWords, digestedWords, loading } = useData()
   const [active, setActive] = useState('all')
   const [expanded, setExpanded] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -27,19 +27,20 @@ export default function WordListPage() {
     ? allWords.filter((w) => w.word.toLowerCase().includes(q) || w.meaning.toLowerCase().includes(q))
     : rawWords
 
-  // 기본순: 탭 이동 후 돌아와도 순서 유지 (새로고침 시에만 재섞기)
+  // 랜덤순: 탭 이동 후 돌아와도 순서 유지 (새로고침 시에만 재섞기)
+  // words(전체, digested 포함) 기반으로 섞어야 소화한 단어장 탭에서도 동작
   const shuffled = useMemo(() => {
     try {
       const cached = JSON.parse(sessionStorage.getItem('wordlist-shuffle') ?? 'null')
-      if (Array.isArray(cached) && cached.length === allWords.length && allWords.length > 0) {
-        const restored = cached.map((id) => allWords.find((w) => w.id === id)).filter(Boolean)
-        if (restored.length === allWords.length) return restored
+      if (Array.isArray(cached) && cached.length === words.length && words.length > 0) {
+        const restored = cached.map((id) => words.find((w) => w.id === id)).filter(Boolean)
+        if (restored.length === words.length) return restored
       }
     } catch {}
-    const result = [...allWords].sort(() => Math.random() - 0.5)
+    const result = [...words].sort(() => Math.random() - 0.5)
     try { sessionStorage.setItem('wordlist-shuffle', JSON.stringify(result.map((w) => w.id))) } catch {}
     return result
-  }, [allWords.length]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [words.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const words = (() => {
     if (sortBy === 'alpha-asc')      return [...baseWords].sort((a, b) => a.word.localeCompare(b.word))
@@ -133,7 +134,7 @@ export default function WordListPage() {
       {/* 정렬 */}
       <div className="flex gap-1.5 px-4 mb-3 overflow-x-auto">
         {[
-          { key: 'default',        label: '기본순' },
+          { key: 'default',        label: '랜덤순' },
           { key: 'new-first',      label: '최근 추가순' },
           { key: 'alpha-asc',      label: 'A→Z' },
           { key: 'alpha-desc',     label: 'Z→A' },
