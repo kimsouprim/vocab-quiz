@@ -106,18 +106,26 @@ export default function TestPage() {
   async function injectNewWordsIfAny(cycleData) {
     const remainingIds = cycleData?.remainingWordIds ?? []
     const remainingSet = new Set(remainingIds)
+    const wordMap = new Map(allWords.map((w) => [w.id, w]))
 
-    const notInCycle  = allWords.filter((w) => w.status === 'untested' && !remainingSet.has(w.id))
-    const inCycleIds  = remainingIds.filter((id) => allWords.find((w) => w.id === id)?.status === 'untested')
-    const testedIds   = remainingIds.filter((id) => allWords.find((w) => w.id === id)?.status !== 'untested')
-
-    if (notInCycle.length === 0 && inCycleIds.length === 0) return false
+    const notInCycle = allWords.filter((w) => w.status === 'untested' && !remainingSet.has(w.id))
+    const inCycleIds = remainingIds.filter((id) => wordMap.get(id)?.status === 'untested')
+    // digested 단어(allWords에 없음)는 명시적으로 제외 → 사이클에서 자동 제거
+    const testedIds  = remainingIds.filter((id) => {
+      const w = wordMap.get(id)
+      return w != null && w.status !== 'untested'
+    })
 
     const newOrder = [
-      ...shuffle(notInCycle.map((w) => w.id)), // 사이클 밖 신규
-      ...inCycleIds,                            // 사이클 내 untested (기존 순서 유지)
-      ...testedIds,                             // 나머지 (기존 순서 유지)
+      ...shuffle(notInCycle.map((w) => w.id)),
+      ...inCycleIds,
+      ...testedIds,
     ]
+
+    // 신규 untested 단어가 없고 digested 제거도 없으면 업데이트 불필요
+    const hasChanges = notInCycle.length > 0 || inCycleIds.length > 0 || newOrder.length < remainingIds.length
+    if (!hasChanges) return false
+
     await setCycleRemainingIds(user.uid, newOrder)
     return true
   }
