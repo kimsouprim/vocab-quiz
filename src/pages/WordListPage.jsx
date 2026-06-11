@@ -13,7 +13,7 @@ const LIST_TYPES = [
 export default function WordListPage() {
   const navigate = useNavigate()
   const { logout } = useAuth()
-  const { words, allWords, correctWords, incorrectWords, digestedWords, loading } = useData()
+  const { allWords, correctWords, incorrectWords, digestedWords, loading } = useData()
   const [active, setActive] = useState('all')
   const [expanded, setExpanded] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -28,19 +28,20 @@ export default function WordListPage() {
     : rawWords
 
   // 랜덤순: 탭 이동 후 돌아와도 순서 유지 (새로고침 시에만 재섞기)
-  // words(전체, digested 포함) 기반으로 섞어야 소화한 단어장 탭에서도 동작
+  // allWords + digestedWords 합산 기반으로 섞어야 소화한 단어장 탭에서도 동작
   const shuffled = useMemo(() => {
+    const allWordsData = [...allWords, ...digestedWords]
     try {
       const cached = JSON.parse(sessionStorage.getItem('wordlist-shuffle') ?? 'null')
-      if (Array.isArray(cached) && cached.length === words.length && words.length > 0) {
-        const restored = cached.map((id) => words.find((w) => w.id === id)).filter(Boolean)
-        if (restored.length === words.length) return restored
+      if (Array.isArray(cached) && cached.length === allWordsData.length && allWordsData.length > 0) {
+        const restored = cached.map((id) => allWordsData.find((w) => w.id === id)).filter(Boolean)
+        if (restored.length === allWordsData.length) return restored
       }
     } catch {}
-    const result = [...words].sort(() => Math.random() - 0.5)
+    const result = [...allWordsData].sort(() => Math.random() - 0.5)
     try { sessionStorage.setItem('wordlist-shuffle', JSON.stringify(result.map((w) => w.id))) } catch {}
     return result
-  }, [words.length]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [allWords.length, digestedWords.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const words = (() => {
     if (sortBy === 'alpha-asc')      return [...baseWords].sort((a, b) => a.word.localeCompare(b.word))
