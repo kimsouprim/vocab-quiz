@@ -2,11 +2,14 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useData } from '../contexts/DataContext'
-import { getCycle, startCycle, removeFromCycle, clearCycle, insertWordsAtFront, setCycleRemainingIds } from '../firebase/cycleService'
+import { getCycle, startCycle, removeFromCycle, clearCycle, setCycleRemainingIds } from '../firebase/cycleService'
 import { getSession, saveSession, clearSession, saveTest } from '../firebase/testService'
 import { batchUpdateWords } from '../firebase/wordService'
 import { today } from '../utils/dateUtils'
 
+function isUntestedWord(word) {
+  return !word?.status || word.status === 'untested'
+}
 
 export default function TestPage() {
   const { user } = useAuth()
@@ -89,10 +92,33 @@ export default function TestPage() {
   }, [phase, wordPhase, localSession?.testItems?.length])
 
   // Current word from cycle
+  const activeListType = localSession?.wordListType ?? cycle?.activeList
   const cycleRemaining = localSession?.remainingAtStart ?? cycle?.remainingWordIds ?? []
   const answeredIds = new Set((localSession?.testItems ?? []).map((i) => i.wordId))
   const digestedIds = new Set(digestedWords.map((w) => w.id))
-  const wordPool = cycleRemaining
+
+  function prioritizeAllTestIds(remainingIds) {
+    const remainingSet = new Set(remainingIds)
+    const wordMap = new Map(allWords.map((w) => [w.id, w]))
+    const notInCycleIds = allWords
+      .filter((w) => isUntestedWord(w) && !remainingSet.has(w.id))
+      .map((w) => w.id)
+    const untestedIds = remainingIds.filter((id) => {
+      const w = wordMap.get(id)
+      return w != null && isUntestedWord(w)
+    })
+    const testedIds = remainingIds.filter((id) => {
+      const w = wordMap.get(id)
+      return w != null && !isUntestedWord(w)
+    })
+
+    return [...notInCycleIds, ...untestedIds, ...testedIds]
+  }
+
+  const prioritizedRemaining = activeListType === 'all'
+    ? prioritizeAllTestIds(cycleRemaining)
+    : cycleRemaining
+  const wordPool = prioritizedRemaining
     .filter((id) => !answeredIds.has(id) && !digestedIds.has(id))
     .map((id) => allWords.find((w) => w.id === id))
     .filter(Boolean)
@@ -106,25 +132,10 @@ export default function TestPage() {
   // - 나머지(correct/incorrect): 뒤에 유지
   async function injectNewWordsIfAny(cycleData) {
     const remainingIds = cycleData?.remainingWordIds ?? []
-    const remainingSet = new Set(remainingIds)
-    const wordMap = new Map(allWords.map((w) => [w.id, w]))
-
-    const notInCycle = allWords.filter((w) => w.status === 'untested' && !remainingSet.has(w.id))
-    const inCycleIds = remainingIds.filter((id) => wordMap.get(id)?.status === 'untested')
-    // digested 단어(allWords에 없음)는 명시적으로 제외 → 사이클에서 자동 제거
-    const testedIds  = remainingIds.filter((id) => {
-      const w = wordMap.get(id)
-      return w != null && w.status !== 'untested'
-    })
-
-    const newOrder = [
-      ...shuffle(notInCycle.map((w) => w.id)),
-      ...inCycleIds,
-      ...testedIds,
-    ]
+    const newOrder = prioritizeAllTestIds(remainingIds)
 
     // 신규 untested 단어가 없고 digested 제거도 없으면 업데이트 불필요
-    const hasChanges = notInCycle.length > 0 || inCycleIds.length > 0 || newOrder.length < remainingIds.length
+    const hasChanges = newOrder.length !== remainingIds.length || newOrder.some((id, i) => id !== remainingIds[i])
     if (!hasChanges) return false
 
     await setCycleRemainingIds(user.uid, newOrder)
@@ -147,8 +158,8 @@ export default function TestPage() {
       let wordIds
       if (listType === 'all') {
         // untested(한 번도 시험 안 본) 단어를 앞에 배치 → 새로 추가된 단어 우선 출제
-        const untested = wordsForList.filter((w) => w.status === 'untested')
-        const tested   = wordsForList.filter((w) => w.status !== 'untested')
+        const untested = wordsForList.filter(isUntestedWord)
+        const tested   = wordsForList.filter((w) => !isUntestedWord(w))
         wordIds = [...shuffle(untested.map((w) => w.id)), ...shuffle(tested.map((w) => w.id))]
       } else {
         wordIds = shuffle(wordsForList.map((w) => w.id))
