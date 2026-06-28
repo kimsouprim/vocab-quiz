@@ -235,6 +235,12 @@ export default function TestPage() {
       sessionStorage.removeItem('test-answer')
     } catch {}
     await saveSession(user.uid, updated)
+    try {
+      await batchUpdateWords(user.uid, [{ id: currentWord.id, status: 'digested' }])
+      await refresh()
+    } catch (e) {
+      console.error('[handleDigest] immediate digest update failed:', e)
+    }
   }
 
   // ── GRADE O/X → save & next word ─────────────────────────────
