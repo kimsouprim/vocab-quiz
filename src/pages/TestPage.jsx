@@ -44,20 +44,27 @@ export default function TestPage() {
     if (sessionRestored.current) return
     sessionRestored.current = true
 
-    // sessionStorage에 오늘 진행 상태가 있으면 우선 복원
+    const hasTodayRemoteSession = session?.phase === 'testing' && session.date === today()
+
+    // 서버에 오늘 진행 중인 세션이 있을 때만 sessionStorage를 복원
     try {
       const stored = JSON.parse(sessionStorage.getItem('test-local-session') ?? 'null')
-      if (stored?.phase === 'testing' && stored.date === today()) {
+      if (hasTodayRemoteSession && stored?.phase === 'testing' && stored.date === today()) {
         setLocalSession(stored)
         setPhase('testing')
         setWordPhase(sessionStorage.getItem('test-word-phase') ?? 'input')
         setAnswer(sessionStorage.getItem('test-answer') ?? '')
         return
       }
+      if (!hasTodayRemoteSession) {
+        sessionStorage.removeItem('test-local-session')
+        sessionStorage.removeItem('test-word-phase')
+        sessionStorage.removeItem('test-answer')
+      }
     } catch {}
 
     // sessionStorage 없고 오늘 날짜 Firestore 세션이면 복원
-    if (session?.phase === 'testing' && session.date === today()) {
+    if (hasTodayRemoteSession) {
       setLocalSession(session)
       setPhase('testing')
       setWordPhase('input')
