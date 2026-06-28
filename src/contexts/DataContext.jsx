@@ -6,6 +6,13 @@ import { getSession, getAllTests } from '../firebase/testService'
 
 const DataContext = createContext(null)
 
+function describeError(error) {
+  const code = error?.code ? String(error.code) : ''
+  const message = error?.message ? String(error.message) : ''
+  if (code && message) return `${code}: ${message}`
+  return code || message || '알 수 없는 오류'
+}
+
 export function DataProvider({ children }) {
   const { user } = useAuth()
   const [words, setWords] = useState([])
@@ -33,7 +40,7 @@ export function DataProvider({ children }) {
       if (result.status === 'fulfilled') {
         apply(result.value)
       } else {
-        failed.push(label)
+        failed.push(`${label} (${describeError(result.reason)})`)
         console.error(`[DataContext] ${label} load failed:`, result.reason)
       }
     })
