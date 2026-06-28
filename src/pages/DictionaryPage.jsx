@@ -43,7 +43,7 @@ export default function DictionaryPage() {
             className="w-full h-full border-none"
             onLoad={() => setLoaded(true)}
             onError={() => setBlocked(true)}
-            title="Daum 영어사전"
+            title="Naver 영어사전"
             sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
           />
         </div>
@@ -54,12 +54,12 @@ export default function DictionaryPage() {
             사이트 보안 정책으로 앱 내에서 열 수 없어요
           </p>
           <a
-            href={DICT_URL}
+            href={dictUrl}
             target="_blank"
             rel="noreferrer"
             className="px-6 py-3 bg-primary-600 text-white rounded-xl font-semibold"
           >
-            다음 사전 열기 ↗
+            네이버 사전 열기 ↗
           </a>
         </div>
       )}

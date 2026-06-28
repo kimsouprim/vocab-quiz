@@ -2,3 +2,5 @@ node_modules
 dist
 .env
 .DS_Store
+단어장.xlsx
+~$*.xlsx
