@@ -503,75 +503,77 @@ function TestingView({
 
       {/* 이전 단어 모달 */}
       {showPrev && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-white">
-          <div className="flex items-center justify-between px-4 pt-6 pb-3 border-b border-gray-100">
-            <h2 className="font-bold text-gray-900">이전 정답 확인 ({prevItems.length}개)</h2>
-            <button onClick={() => setShowPrev(false)} className="text-gray-400 p-1">
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-
-          <div className="flex gap-2 overflow-x-auto px-4 py-3 border-b border-gray-50">
-            {reviewItems.map((item) => (
-              <button
-                key={item.wordId}
-                onClick={() => setReviewWordId(item.wordId)}
-                className={`flex-shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium ${
-                  selectedReviewItem?.wordId === item.wordId
-                    ? 'border-primary-200 bg-primary-50 text-primary-600'
-                    : 'border-gray-200 bg-white text-gray-500'
-                }`}
-              >
-                {item.word}
+        <div className="fixed inset-0 z-50 bg-gray-50">
+          <div className="mx-auto flex h-full w-full max-w-lg flex-col bg-white">
+            <div className="flex items-center justify-between px-4 pt-6 pb-3 border-b border-gray-100">
+              <h2 className="font-bold text-gray-900">이전 정답 확인 ({prevItems.length}개)</h2>
+              <button onClick={() => setShowPrev(false)} className="text-gray-400 p-1">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
-            ))}
-          </div>
-
-          {selectedReviewItem && (
-            <div className="flex-1 overflow-y-auto px-4 py-5">
-              <div className="mb-4 rounded-3xl border border-gray-100 bg-white p-7 text-center shadow-sm">
-                <div className="mb-2 flex items-center justify-center gap-2">
-                  <p className="text-3xl font-bold text-gray-900">{selectedReviewItem.word}</p>
-                  <ReviewBadge item={selectedReviewItem} />
-                </div>
-                {selectedReviewItem.incorrectCount > 0 && (
-                  <p className="text-sm text-red-400">오답 {selectedReviewItem.incorrectCount}회</p>
-                )}
-              </div>
-
-              <div className="mb-3 rounded-2xl border border-blue-100 bg-blue-50 p-4">
-                <p className="mb-1 text-xs font-semibold text-blue-400">내 답</p>
-                <p className="text-base text-gray-800">{selectedReviewItem.userAnswer || '-'}</p>
-              </div>
-
-              <div className="rounded-2xl border border-green-200 bg-green-50 p-4">
-                <div className="mb-1 flex items-center justify-between">
-                  <p className="text-xs font-semibold text-green-500">정답</p>
-                  <button
-                    onClick={() => navigate(`/dictionary?q=${encodeURIComponent(selectedReviewItem.word)}`)}
-                    className="flex items-center gap-1 text-xs font-medium text-primary-500"
-                  >
-                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-                    </svg>
-                    사전
-                  </button>
-                </div>
-                <p className="text-base font-semibold text-gray-900">{selectedReviewItem.meaning}</p>
-                {selectedReviewItem.examples?.length > 0 && (
-                  <div className="mt-3 space-y-2">
-                    {selectedReviewItem.examples.map((ex, i) => (
-                      <p key={i} className="text-sm leading-relaxed text-gray-700">
-                        <span className="mr-1 text-gray-400">{i + 1}.</span>{ex}
-                      </p>
-                    ))}
-                  </div>
-                )}
-              </div>
             </div>
-          )}
+
+            <div className="flex gap-2 overflow-x-auto px-4 py-3 border-b border-gray-50">
+              {reviewItems.map((item) => (
+                <button
+                  key={item.wordId}
+                  onClick={() => setReviewWordId(item.wordId)}
+                  className={`flex-shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium ${
+                    selectedReviewItem?.wordId === item.wordId
+                      ? 'border-primary-200 bg-primary-50 text-primary-600'
+                      : 'border-gray-200 bg-white text-gray-500'
+                  }`}
+                >
+                  {item.word}
+                </button>
+              ))}
+            </div>
+
+            {selectedReviewItem && (
+              <div className="flex-1 overflow-y-auto px-4 py-5">
+                <div className="mb-4 rounded-3xl border border-gray-100 bg-white p-7 text-center shadow-sm">
+                  <div className="mb-2 flex items-center justify-center gap-2">
+                    <p className="text-3xl font-bold text-gray-900">{selectedReviewItem.word}</p>
+                    <ReviewBadge item={selectedReviewItem} />
+                  </div>
+                  {selectedReviewItem.incorrectCount > 0 && (
+                    <p className="text-sm text-red-400">오답 {selectedReviewItem.incorrectCount}회</p>
+                  )}
+                </div>
+
+                <div className="mb-3 rounded-2xl border border-blue-100 bg-blue-50 p-4">
+                  <p className="mb-1 text-xs font-semibold text-blue-400">내 답</p>
+                  <p className="text-base text-gray-800">{selectedReviewItem.userAnswer || '-'}</p>
+                </div>
+
+                <div className="rounded-2xl border border-green-200 bg-green-50 p-4">
+                  <div className="mb-1 flex items-center justify-between">
+                    <p className="text-xs font-semibold text-green-500">정답</p>
+                    <button
+                      onClick={() => navigate(`/dictionary?q=${encodeURIComponent(selectedReviewItem.word)}`)}
+                      className="flex items-center gap-1 text-xs font-medium text-primary-500"
+                    >
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                      </svg>
+                      사전
+                    </button>
+                  </div>
+                  <p className="text-base font-semibold text-gray-900">{selectedReviewItem.meaning}</p>
+                  {selectedReviewItem.examples?.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      {selectedReviewItem.examples.map((ex, i) => (
+                        <p key={i} className="text-sm leading-relaxed text-gray-700">
+                          <span className="mr-1 text-gray-400">{i + 1}.</span>{ex}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
