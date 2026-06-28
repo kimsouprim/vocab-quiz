@@ -16,6 +16,7 @@ export async function importWords(uid, rows, existingWords = null) {
     const key = normalizeWordKey(w.word)
     if (!existingMap[key] || w.status === 'digested') existingMap[key] = w
   }
+  const canonicalIds = new Set(Object.values(existingMap).map((w) => w.id))
   const incomingKeys = new Set(rows.map((r) => normalizeWordKey(r.word)))
 
   const batch = writeBatch(db)
@@ -50,7 +51,8 @@ export async function importWords(uid, rows, existingWords = null) {
 
   // Excel에 없는 단어 삭제
   for (const w of existing) {
-    if (!incomingKeys.has(normalizeWordKey(w.word))) {
+    const key = normalizeWordKey(w.word)
+    if (!incomingKeys.has(key) || !canonicalIds.has(w.id)) {
       batch.delete(wordDoc(uid, w.id))
       removed++
     }

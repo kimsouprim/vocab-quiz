@@ -14,6 +14,27 @@ function describeError(error) {
   return code || message || '알 수 없는 오류'
 }
 
+const statusPriority = { digested: 4, incorrect: 3, correct: 2, untested: 1 }
+
+function getStatusPriority(word) {
+  return statusPriority[word?.status] ?? statusPriority.untested
+}
+
+function getCreatedTime(word) {
+  return word?.createdAt?.toDate?.()?.getTime?.() ?? 0
+}
+
+function pickCanonicalWord(a, b) {
+  if (!a) return b
+  if (getStatusPriority(b) !== getStatusPriority(a)) {
+    return getStatusPriority(b) > getStatusPriority(a) ? b : a
+  }
+  if ((b?.incorrectCount ?? 0) !== (a?.incorrectCount ?? 0)) {
+    return (b?.incorrectCount ?? 0) > (a?.incorrectCount ?? 0) ? b : a
+  }
+  return getCreatedTime(b) > getCreatedTime(a) ? b : a
+}
+
 export function DataProvider({ children }) {
   const { user } = useAuth()
   const [words, setWords] = useState([])
@@ -68,21 +89,21 @@ export function DataProvider({ children }) {
     }
   }, [user, refresh])
 
-  const digestedKeys = new Set(
-    words
-      .filter((w) => w.status === 'digested')
-      .map((w) => normalizeWordKey(w.word))
-  )
-  const isExcludedByDigestedCopy = (w) => digestedKeys.has(normalizeWordKey(w.word))
+  const uniqueWordMap = new Map()
+  for (const w of words) {
+    const key = normalizeWordKey(w.word)
+    uniqueWordMap.set(key, pickCanonicalWord(uniqueWordMap.get(key), w))
+  }
+  const uniqueWords = [...uniqueWordMap.values()]
 
-  const allWords = words.filter((w) => w.status !== 'digested' && !isExcludedByDigestedCopy(w))
-  const correctWords = words.filter((w) => w.status === 'correct' && !isExcludedByDigestedCopy(w))
-  const incorrectWords = words.filter((w) => w.status === 'incorrect' && !isExcludedByDigestedCopy(w))
-  const digestedWords = words.filter((w) => w.status === 'digested')
+  const allWords = uniqueWords.filter((w) => w.status !== 'digested')
+  const correctWords = uniqueWords.filter((w) => w.status === 'correct')
+  const incorrectWords = uniqueWords.filter((w) => w.status === 'incorrect')
+  const digestedWords = uniqueWords.filter((w) => w.status === 'digested')
 
   return (
     <DataContext.Provider value={{
-      words, allWords, correctWords, incorrectWords, digestedWords,
+      words, uniqueWords, allWords, correctWords, incorrectWords, digestedWords,
       cycle, session, tests,
       loading, error, refresh, setWords,
     }}>

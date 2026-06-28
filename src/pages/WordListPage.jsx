@@ -3,6 +3,18 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useData } from '../contexts/DataContext'
 
+const SEARCH_BADGES = {
+  correct: 'bg-green-100 text-green-600',
+  incorrect: 'bg-red-100 text-red-500',
+  digested: 'bg-purple-100 text-purple-600',
+}
+
+const SEARCH_LABELS = {
+  correct: '정답',
+  incorrect: '오답',
+  digested: '소화',
+}
+
 const LIST_TYPES = [
   { key: 'all',      label: '전체 단어장',    color: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
   { key: 'correct',  label: '정답 단어장',    color: 'bg-green-50 text-green-700 border-green-200' },
@@ -13,7 +25,7 @@ const LIST_TYPES = [
 export default function WordListPage() {
   const navigate = useNavigate()
   const { logout } = useAuth()
-  const { allWords, correctWords, incorrectWords, digestedWords, loading, error, refresh } = useData()
+  const { uniqueWords, allWords, correctWords, incorrectWords, digestedWords, loading, error, refresh } = useData()
   const [active, setActive] = useState('all')
   const [expanded, setExpanded] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -24,7 +36,7 @@ export default function WordListPage() {
   const q = searchQuery.trim().toLowerCase()
 
   const baseWords = q
-    ? allWords.filter((w) => w.word.toLowerCase().includes(q) || w.meaning.toLowerCase().includes(q))
+    ? uniqueWords.filter((w) => w.word.toLowerCase().includes(q) || w.meaning.toLowerCase().includes(q))
     : rawWords
 
   // 랜덤순: 탭 이동 후 돌아와도 순서 유지 (새로고침 시에만 재섞기)
@@ -199,6 +211,11 @@ export default function WordListPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-gray-900 truncate">{w.word}</span>
+                      {q && SEARCH_BADGES[w.status] && (
+                        <span className={`flex-shrink-0 text-xs px-1.5 py-0.5 rounded-full font-medium ${SEARCH_BADGES[w.status]}`}>
+                          {SEARCH_LABELS[w.status]}
+                        </span>
+                      )}
                       {needsExamples && (
                         <span className="flex-shrink-0 text-xs bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-full font-medium">
                           예문 추가 필요
