@@ -13,7 +13,7 @@ const LIST_TYPES = [
 export default function WordListPage() {
   const navigate = useNavigate()
   const { logout } = useAuth()
-  const { allWords, correctWords, incorrectWords, digestedWords, loading } = useData()
+  const { allWords, correctWords, incorrectWords, digestedWords, loading, error, refresh } = useData()
   const [active, setActive] = useState('all')
   const [expanded, setExpanded] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -90,6 +90,17 @@ export default function WordListPage() {
           </button>
         </div>
       </div>
+
+      {error && (
+        <div className="mx-4 mb-3 rounded-xl border border-red-100 bg-red-50 p-3 text-sm text-red-700">
+          <div className="flex items-center justify-between gap-3">
+            <span>{error}</span>
+            <button onClick={refresh} className="flex-shrink-0 font-semibold text-red-600">
+              다시 시도
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 검색창 */}
       <div className="px-4 mb-3">

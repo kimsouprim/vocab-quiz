@@ -5,7 +5,7 @@ import { formatDate } from '../utils/dateUtils'
 const listLabels = { all: '전체 단어장', correct: '정답 단어장', incorrect: '오답 단어장' }
 
 export default function HistoryPage() {
-  const { tests } = useData()
+  const { tests, error, refresh } = useData()
   const [selected, setSelected] = useState(null)
 
   if (selected) {
@@ -15,6 +15,17 @@ export default function HistoryPage() {
   return (
     <div className="min-h-screen pb-24 pt-6 px-4 max-w-lg mx-auto">
       <h1 className="text-xl font-bold text-gray-900 mb-6">시험 기록</h1>
+
+      {error && (
+        <div className="mb-4 rounded-xl border border-red-100 bg-red-50 p-3 text-sm text-red-700">
+          <div className="flex items-center justify-between gap-3">
+            <span>{error}</span>
+            <button onClick={refresh} className="flex-shrink-0 font-semibold text-red-600">
+              다시 시도
+            </button>
+          </div>
+        </div>
+      )}
 
       {tests.length === 0 ? (
         <div className="text-center py-20 text-gray-400">

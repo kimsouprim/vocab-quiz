@@ -13,31 +13,49 @@ export function DataProvider({ children }) {
   const [session, setSession] = useState(null)
   const [tests, setTests] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   const refresh = useCallback(async () => {
     if (!user) return
-    const [w, c, s, t] = await Promise.all([
-      getAllWords(user.uid),
-      getCycle(user.uid),
-      getSession(user.uid),
-      getAllTests(user.uid),
-    ])
-    setWords(w)
-    setCycle(c)
-    setSession(s?.phase ? s : null)
-    setTests(t)
+
+    const requests = [
+      ['단어장', getAllWords(user.uid), setWords],
+      ['사이클', getCycle(user.uid), setCycle],
+      ['진행 중인 시험', getSession(user.uid), (s) => setSession(s?.phase ? s : null)],
+      ['시험 기록', getAllTests(user.uid), setTests],
+    ]
+
+    const results = await Promise.allSettled(requests.map(([, request]) => request))
+    const failed = []
+
+    results.forEach((result, index) => {
+      const [label,, apply] = requests[index]
+      if (result.status === 'fulfilled') {
+        apply(result.value)
+      } else {
+        failed.push(label)
+        console.error(`[DataContext] ${label} load failed:`, result.reason)
+      }
+    })
+
+    setError(failed.length ? `${failed.join(', ')} 데이터를 불러오지 못했어요.` : null)
     setLoading(false)
   }, [user])
 
   useEffect(() => {
     if (user) {
       setLoading(true)
-      refresh()
+      refresh().catch((err) => {
+        console.error('[DataContext] refresh failed:', err)
+        setError('데이터를 불러오지 못했어요.')
+        setLoading(false)
+      })
     } else if (user === null) {
       setWords([])
       setCycle(null)
       setSession(null)
       setTests([])
+      setError(null)
       setLoading(false)
     }
   }, [user, refresh])
@@ -51,7 +69,7 @@ export function DataProvider({ children }) {
     <DataContext.Provider value={{
       words, allWords, correctWords, incorrectWords, digestedWords,
       cycle, session, tests,
-      loading, refresh, setWords,
+      loading, error, refresh, setWords,
     }}>
       {children}
     </DataContext.Provider>

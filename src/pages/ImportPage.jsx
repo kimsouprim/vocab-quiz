@@ -41,7 +41,7 @@ const supportsFileAccess = typeof window !== 'undefined' && 'showOpenFilePicker'
 // ── 컴포넌트 ───────────────────────────────────────────────────────────────
 export default function ImportPage() {
   const { user } = useAuth()
-  const { allWords, setWords } = useData()
+  const { words, setWords } = useData()
   const inputRef = useRef(null)
   const [status, setStatus] = useState(null) // null | 'loading' | { added, updated, removed } | 'error'
   const [savedHandle, setSavedHandle] = useState(null) // FileSystemFileHandle
@@ -56,7 +56,7 @@ export default function ImportPage() {
   async function processFile(file) {
     const rows = await parseExcel(file)
     if (rows.length === 0) { setStatus('error'); return }
-    const result = await importWords(user.uid, rows, allWords)
+    const result = await importWords(user.uid, rows, words)
     setWords(result.words)
     setStatus({ added: result.added, updated: result.updated, removed: result.removed })
   }

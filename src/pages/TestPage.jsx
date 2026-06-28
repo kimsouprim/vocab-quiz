@@ -11,7 +11,7 @@ import { today } from '../utils/dateUtils'
 export default function TestPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const { allWords, correctWords, incorrectWords, digestedWords, cycle, session, loading, refresh } = useData()
+  const { allWords, correctWords, incorrectWords, digestedWords, cycle, session, loading, error, refresh } = useData()
 
   const [phase, setPhase] = useState('setup') // setup | testing | result
   const [localSession, setLocalSession] = useState(null)
@@ -322,6 +322,8 @@ export default function TestPage() {
         listLabels={listLabels}
         listMap={listMap}
         onStart={handleStart}
+        error={error}
+        onRetry={refresh}
       />
     )
   }
@@ -385,7 +387,7 @@ export default function TestPage() {
 
 // ── SETUP ─────────────────────────────────────────────────────
 
-function SetupView({ cycle, listLabels, listMap, onStart }) {
+function SetupView({ cycle, listLabels, listMap, onStart, error, onRetry }) {
   const LIST_CONFIGS = [
     { key: 'all', icon: '📚', color: 'border-indigo-200 bg-indigo-50', badge: 'bg-indigo-100 text-indigo-700' },
     { key: 'correct', icon: '✅', color: 'border-green-200 bg-green-50', badge: 'bg-green-100 text-green-700' },
@@ -395,6 +397,17 @@ function SetupView({ cycle, listLabels, listMap, onStart }) {
   return (
     <div className="min-h-screen pb-24 pt-6 px-4 max-w-lg mx-auto">
       <h1 className="text-xl font-bold text-gray-900 mb-6">시험</h1>
+
+      {error && (
+        <div className="mb-4 rounded-xl border border-red-100 bg-red-50 p-3 text-sm text-red-700">
+          <div className="flex items-center justify-between gap-3">
+            <span>{error}</span>
+            <button onClick={onRetry} className="flex-shrink-0 font-semibold text-red-600">
+              다시 시도
+            </button>
+          </div>
+        </div>
+      )}
 
       {cycle?.activeList && (
         <div className="mb-4 p-3 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-600">
