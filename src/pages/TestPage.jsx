@@ -532,7 +532,7 @@ function TestingView({
               onKeyDown={handleKeyDown}
               placeholder="한국어 뜻을 입력하세요"
               rows={3}
-              className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3 text-sm resize-none outline-none focus:border-primary-400 shadow-sm"
+              className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3 text-base resize-none outline-none focus:border-primary-400 shadow-sm"
             />
             <button
               onClick={onSubmit}
