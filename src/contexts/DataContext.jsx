@@ -3,6 +3,7 @@ import { useAuth } from './AuthContext'
 import { getAllWords } from '../firebase/wordService'
 import { getCycle } from '../firebase/cycleService'
 import { getSession, getAllTests } from '../firebase/testService'
+import { normalizeWordKey } from '../utils/wordUtils'
 
 const DataContext = createContext(null)
 
@@ -67,9 +68,16 @@ export function DataProvider({ children }) {
     }
   }, [user, refresh])
 
-  const allWords = words.filter((w) => w.status !== 'digested')
-  const correctWords = words.filter((w) => w.status === 'correct')
-  const incorrectWords = words.filter((w) => w.status === 'incorrect')
+  const digestedKeys = new Set(
+    words
+      .filter((w) => w.status === 'digested')
+      .map((w) => normalizeWordKey(w.word))
+  )
+  const isExcludedByDigestedCopy = (w) => digestedKeys.has(normalizeWordKey(w.word))
+
+  const allWords = words.filter((w) => w.status !== 'digested' && !isExcludedByDigestedCopy(w))
+  const correctWords = words.filter((w) => w.status === 'correct' && !isExcludedByDigestedCopy(w))
+  const incorrectWords = words.filter((w) => w.status === 'incorrect' && !isExcludedByDigestedCopy(w))
   const digestedWords = words.filter((w) => w.status === 'digested')
 
   return (

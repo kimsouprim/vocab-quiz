@@ -3,20 +3,20 @@ import {
   query, orderBy, writeBatch, getDoc,
 } from 'firebase/firestore'
 import { db } from './config'
+import { normalizeWordKey } from '../utils/wordUtils'
 
 const wordsCol = (uid) => collection(db, 'users', uid, 'words')
 const wordDoc = (uid, wordId) => doc(db, 'users', uid, 'words', wordId)
 
-// 단어 정규화: 소문자 + 앞뒤 공백 제거 + 연속 공백 단일화
-function normalizeKey(word) {
-  return word.toLowerCase().trim().replace(/\s+/g, ' ')
-}
-
 // existingWords: DataContext에서 받아서 재조회 생략 (없으면 직접 fetch)
 export async function importWords(uid, rows, existingWords = null) {
   const existing = existingWords ?? await getAllWords(uid)
-  const existingMap = Object.fromEntries(existing.map((w) => [normalizeKey(w.word), w]))
-  const incomingKeys = new Set(rows.map((r) => normalizeKey(r.word)))
+  const existingMap = {}
+  for (const w of existing) {
+    const key = normalizeWordKey(w.word)
+    if (!existingMap[key] || w.status === 'digested') existingMap[key] = w
+  }
+  const incomingKeys = new Set(rows.map((r) => normalizeWordKey(r.word)))
 
   const batch = writeBatch(db)
   let added = 0
@@ -26,7 +26,7 @@ export async function importWords(uid, rows, existingWords = null) {
 
   // 추가 또는 업데이트
   for (const row of rows) {
-    const key = normalizeKey(row.word)
+    const key = normalizeWordKey(row.word)
     if (existingMap[key]) {
       const existing = existingMap[key]
       batch.update(wordDoc(uid, existing.id), { examples: row.examples, meaning: row.meaning })
@@ -50,7 +50,7 @@ export async function importWords(uid, rows, existingWords = null) {
 
   // Excel에 없는 단어 삭제
   for (const w of existing) {
-    if (!incomingKeys.has(normalizeKey(w.word))) {
+    if (!incomingKeys.has(normalizeWordKey(w.word))) {
       batch.delete(wordDoc(uid, w.id))
       removed++
     }
