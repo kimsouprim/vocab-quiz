@@ -15,6 +15,8 @@ const SEARCH_LABELS = {
   digested: '소화',
 }
 
+const MAX_EXAMPLES = 5
+
 const LIST_TYPES = [
   { key: 'all',      label: '전체 단어장',    color: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
   { key: 'correct',  label: '정답 단어장',    color: 'bg-green-50 text-green-700 border-green-200' },
@@ -68,8 +70,8 @@ export default function WordListPage() {
     // default: 오답 단어장은 예문 필요 단어 우선, 나머지는 랜덤
     if (!q && active === 'incorrect') {
       return [...baseWords].sort((a, b) => {
-        const aNeedsEx = a.incorrectCount > 0 && a.examples.length < a.incorrectCount ? 1 : 0
-        const bNeedsEx = b.incorrectCount > 0 && b.examples.length < b.incorrectCount ? 1 : 0
+        const aNeedsEx = a.incorrectCount > 0 && a.examples.length < Math.min(a.incorrectCount, MAX_EXAMPLES) ? 1 : 0
+        const bNeedsEx = b.incorrectCount > 0 && b.examples.length < Math.min(b.incorrectCount, MAX_EXAMPLES) ? 1 : 0
         return bNeedsEx - aNeedsEx
       })
     }
@@ -196,7 +198,7 @@ export default function WordListPage() {
       ) : (
         <div className="px-4 space-y-2">
           {words.map((w) => {
-            const needsExamples = w.incorrectCount > 0 && w.examples.length < w.incorrectCount
+            const needsExamples = w.incorrectCount > 0 && w.examples.length < Math.min(w.incorrectCount, MAX_EXAMPLES)
             const isOpen = expanded === w.id
 
             return (
@@ -255,8 +257,8 @@ export default function WordListPage() {
                       <p className="text-sm text-gray-400">예문 없음</p>
                     )}
                     {needsExamples && (
-                      <p className="mt-2 text-xs text-orange-500">
-                        오답 {w.incorrectCount}회 → 예문 {w.incorrectCount}개가 필요해요 (현재 {w.examples.length}개)
+                      <p className="mt-2 text-xs font-medium text-orange-500">
+                        오답 {w.incorrectCount}회
                       </p>
                     )}
                   </div>
