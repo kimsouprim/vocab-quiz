@@ -2,7 +2,12 @@ import { useState } from 'react'
 import { useData } from '../contexts/DataContext'
 import { formatDate } from '../utils/dateUtils'
 
-const listLabels = { all: '전체 단어장', correct: '정답 단어장', incorrect: '오답 단어장' }
+const listLabels = {
+  all: '전체 단어장',
+  correct: '정답 단어장',
+  incorrect: '오답 단어장',
+  digested: '소화한 단어장',
+}
 
 export default function HistoryPage() {
   const { tests, error, refresh } = useData()

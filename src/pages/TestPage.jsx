@@ -25,8 +25,13 @@ export default function TestPage() {
   const [isStopping, setIsStopping] = useState(false)
   const inputRef = useRef(null)
 
-  const listMap = { all: allWords, correct: correctWords, incorrect: incorrectWords }
-  const listLabels = { all: '전체 단어장', correct: '정답 단어장', incorrect: '오답 단어장' }
+  const listMap = { all: allWords, correct: correctWords, incorrect: incorrectWords, digested: digestedWords }
+  const listLabels = {
+    all: '전체 단어장',
+    correct: '정답 단어장',
+    incorrect: '오답 단어장',
+    digested: '소화한 단어장',
+  }
 
   // Restore in-progress session + 날짜 지난 세션 자동 마무리
   const sessionRestored = useRef(false)
@@ -103,6 +108,7 @@ export default function TestPage() {
   const cycleRemaining = localSession?.remainingAtStart ?? cycle?.remainingWordIds ?? []
   const answeredIds = new Set((localSession?.testItems ?? []).map((i) => i.wordId))
   const digestedIds = new Set(digestedWords.map((w) => w.id))
+  const testWordMap = new Map([...allWords, ...digestedWords].map((w) => [w.id, w]))
 
   function prioritizeAllTestIds(remainingIds) {
     const remainingSet = new Set(remainingIds)
@@ -126,8 +132,8 @@ export default function TestPage() {
     ? prioritizeAllTestIds(cycleRemaining)
     : cycleRemaining
   const wordPool = prioritizedRemaining
-    .filter((id) => !answeredIds.has(id) && !digestedIds.has(id))
-    .map((id) => allWords.find((w) => w.id === id))
+    .filter((id) => !answeredIds.has(id) && (activeListType === 'digested' || !digestedIds.has(id)))
+    .map((id) => testWordMap.get(id))
     .filter(Boolean)
   const currentWord = wordPool[0] ?? null
 
@@ -180,12 +186,14 @@ export default function TestPage() {
 
     cycleData = await getCycle(user.uid)
 
-    // 사이클에 남아있는 digested 단어 ID 정리 (방어적 클린업)
-    const digestedSet = new Set(digestedWords.map((w) => w.id))
-    const cleanRemaining = cycleData.remainingWordIds.filter((id) => !digestedSet.has(id))
-    if (cleanRemaining.length !== cycleData.remainingWordIds.length) {
-      await setCycleRemainingIds(user.uid, cleanRemaining).catch(() => {})
-      cycleData = { ...cycleData, remainingWordIds: cleanRemaining }
+    // 소화 시험이 아닌 사이클에 남은 digested 단어 ID만 정리
+    if (listType !== 'digested') {
+      const digestedSet = new Set(digestedWords.map((w) => w.id))
+      const cleanRemaining = cycleData.remainingWordIds.filter((id) => !digestedSet.has(id))
+      if (cleanRemaining.length !== cycleData.remainingWordIds.length) {
+        await setCycleRemainingIds(user.uid, cleanRemaining).catch(() => {})
+        cycleData = { ...cycleData, remainingWordIds: cleanRemaining }
+      }
     }
 
     const newSession = {
@@ -314,7 +322,9 @@ export default function TestPage() {
 
     const updates = items.map((item) => ({
       id: item.wordId,
-      status: item.isDigested ? 'digested' : (item.isCorrect ? 'correct' : 'incorrect'),
+      status: item.isDigested || (sess.wordListType === 'digested' && item.isCorrect)
+        ? 'digested'
+        : (item.isCorrect ? 'correct' : 'incorrect'),
       ...(item.isCorrect || item.isDigested ? {} : { incorrectCount: item.incorrectCount + 1 }),
     }))
     await batchUpdateWords(user.uid, updates)
@@ -416,6 +426,7 @@ function SetupView({ cycle, listLabels, listMap, onStart, error, onRetry }) {
     { key: 'all', icon: '📚', color: 'border-indigo-200 bg-indigo-50', badge: 'bg-indigo-100 text-indigo-700' },
     { key: 'correct', icon: '✅', color: 'border-green-200 bg-green-50', badge: 'bg-green-100 text-green-700' },
     { key: 'incorrect', icon: '❌', color: 'border-red-200 bg-red-50', badge: 'bg-red-100 text-red-700' },
+    { key: 'digested', icon: '🍽️', color: 'border-purple-200 bg-purple-50', badge: 'bg-purple-100 text-purple-700' },
   ]
 
   return (

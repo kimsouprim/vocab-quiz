@@ -20,14 +20,15 @@
 
 - `WordListPage.jsx`: browse all/correct/incorrect/digested word lists, search, sort, open examples, jump to dictionary.
 - `ImportPage.jsx`: import or quick-sync an Excel file; updates existing words, adds new ones, removes words missing from the Excel sheet.
-- `TestPage.jsx`: start a cycle for all/correct/incorrect words, enter answers, reveal meaning/examples, manually grade O/X, stop and save history.
+- `TestPage.jsx`: start a cycle for all/correct/incorrect/digested words, enter answers, reveal meaning/examples, manually grade O/X, stop and save history.
 - `HistoryPage.jsx`: browse completed test sessions and inspect each answer.
 - `DictionaryPage.jsx`: opens Naver English dictionary in an iframe or external tab.
 
 ## Important behavior to preserve
 
 - New untested words in the all-word cycle should be prioritized before previously tested words.
-- Digested words should be excluded from future test cycles.
+- Digested words should be excluded from all/correct/incorrect test cycles, but can be tested in a dedicated digested-word cycle.
+- In a digested-word test, a correct answer keeps the word digested and an incorrect answer moves it to the incorrect list.
 - In-progress test state is stored both in Firestore and `sessionStorage` to survive reloads.
 - If a saved test session is from a previous date, the app tries to auto-finalize it.
 - Same-day tests for the same list type are merged into one `tests/{date}_{listType}` document.
