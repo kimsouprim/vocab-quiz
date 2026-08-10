@@ -6,6 +6,7 @@ import { getCycle, startCycle, removeFromCycle, clearCycle, setCycleRemainingIds
 import { getSession, saveSession, clearSession, saveTest } from '../firebase/testService'
 import { batchUpdateWords } from '../firebase/wordService'
 import { today } from '../utils/dateUtils'
+import { MacIcon, MacPageHeader } from '../components/MacUI'
 
 function isUntestedWord(word) {
   return !word?.status || word.status === 'untested'
@@ -366,16 +367,18 @@ export default function TestPage() {
     // 사이클 단어를 모두 풀었을 때
     if (!currentWord) {
       return (
-        <div className="min-h-screen flex flex-col items-center justify-center px-6 gap-4">
-          <p className="text-4xl">🎉</p>
-          <p className="text-gray-700 font-semibold text-center">사이클 완료! 모든 단어를 풀었어요.</p>
-          <button
-            onClick={handleStop}
-            disabled={isStopping}
-            className="px-6 py-3 bg-primary-600 text-white rounded-xl font-semibold disabled:opacity-50"
-          >
-            {isStopping ? '저장 중...' : '결과 저장'}
-          </button>
+        <div className="mac-page flex items-center justify-center px-6">
+          <div className="mac-panel w-full max-w-sm p-7 text-center">
+            <MacIcon name="result" className="mx-auto mb-4 h-14 w-14" />
+            <p className="mb-5 font-bold text-gray-800">사이클 완료! 모든 단어를 풀었어요.</p>
+            <button
+              onClick={handleStop}
+              disabled={isStopping}
+              className="mac-button mac-button-primary px-6 py-3"
+            >
+              {isStopping ? '저장 중...' : '결과 저장'}
+            </button>
+          </div>
         </div>
       )
     }
@@ -423,21 +426,21 @@ export default function TestPage() {
 
 function SetupView({ cycle, listLabels, listMap, onStart, error, onRetry }) {
   const LIST_CONFIGS = [
-    { key: 'all', icon: '📚', color: 'border-indigo-200 bg-indigo-50', badge: 'bg-indigo-100 text-indigo-700' },
-    { key: 'correct', icon: '✅', color: 'border-green-200 bg-green-50', badge: 'bg-green-100 text-green-700' },
-    { key: 'incorrect', icon: '❌', color: 'border-red-200 bg-red-50', badge: 'bg-red-100 text-red-700' },
-    { key: 'digested', icon: '🍽️', color: 'border-purple-200 bg-purple-50', badge: 'bg-purple-100 text-purple-700' },
+    { key: 'all', icon: 'book', accent: 'border-l-indigo-600' },
+    { key: 'correct', icon: 'correct', accent: 'border-l-green-600' },
+    { key: 'incorrect', icon: 'incorrect', accent: 'border-l-red-500' },
+    { key: 'digested', icon: 'digested', accent: 'border-l-purple-600' },
   ]
 
   return (
-    <div className="min-h-screen pb-24 pt-6 px-4 max-w-lg mx-auto">
-      <h1 className="text-xl font-bold text-gray-900 mb-6">시험</h1>
+    <div className="mac-page">
+      <MacPageHeader icon="test" title="시험" />
 
       {error && (
-        <div className="mb-4 rounded-xl border border-red-100 bg-red-50 p-3 text-sm text-red-700">
+        <div className="mac-alert mb-4 text-sm">
           <div className="flex items-center justify-between gap-3">
             <span>{error}</span>
-            <button onClick={onRetry} className="flex-shrink-0 font-semibold text-red-600">
+            <button onClick={onRetry} className="mac-button flex-shrink-0 px-2 text-xs">
               다시 시도
             </button>
           </div>
@@ -445,31 +448,31 @@ function SetupView({ cycle, listLabels, listMap, onStart, error, onRetry }) {
       )}
 
       {cycle?.activeList && (
-        <div className="mb-4 p-3 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-600">
+        <div className="mac-well mb-4 bg-blue-50 p-3 text-xs text-blue-800">
           현재 사이클: <strong>{listLabels[cycle.activeList]}</strong> · 남은 단어 {cycle.remainingWordIds?.length ?? 0}개
         </div>
       )}
 
-      <div className="space-y-3">
-        {LIST_CONFIGS.map(({ key, icon, color, badge }) => {
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {LIST_CONFIGS.map(({ key, icon, accent }) => {
           const count = listMap[key].length
           const isActive = cycle?.activeList === key
           return (
             <button
               key={key}
               onClick={() => onStart(key)}
-              className={`w-full p-4 rounded-2xl border-2 text-left transition-all active:scale-[0.98] ${color}`}
+              className={`mac-button min-h-[82px] w-full justify-start border-l-4 p-3 text-left ${accent}`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <span className="text-2xl">{icon}</span>
+                  <MacIcon name={icon} className="h-10 w-10 flex-shrink-0" />
                   <div>
                     <p className="font-semibold text-gray-800">{listLabels[key]}</p>
                     <p className="text-sm text-gray-500">단어 {count}개</p>
                   </div>
                 </div>
                 {isActive && (
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${badge}`}>진행 중</span>
+                  <span className="mac-badge bg-purple-100 text-purple-800">진행 중</span>
                 )}
               </div>
             </button>
@@ -508,15 +511,15 @@ function TestingView({
   }
 
   return (
-    <div className="min-h-screen flex flex-col pb-6 pt-6 px-4 max-w-lg mx-auto">
+    <div className="mac-page flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <span className="text-sm text-gray-500">{listLabel} · {answeredCount}번째</span>
+      <div className="mac-well mb-4 flex min-h-[42px] items-center justify-between gap-2 px-3 py-2">
+        <span className="min-w-0 truncate text-sm font-bold text-gray-700">{listLabel} · {answeredCount}번째</span>
         <div className="flex items-center gap-2">
           {answeredCount > 0 && (
             <button
               onClick={() => openPreviousReview()}
-              className="text-xs text-primary-600 font-medium bg-primary-50 px-2.5 py-1 rounded-lg"
+              className="mac-button min-h-0 px-2.5 py-1 text-xs"
             >
               이전 정답 {answeredCount}개 ›
             </button>
@@ -527,26 +530,26 @@ function TestingView({
 
       {/* 이전 단어 모달 */}
       {showPrev && (
-        <div className="fixed inset-0 z-50 bg-gray-50">
-          <div className="mx-auto flex h-full w-full max-w-lg flex-col bg-white">
-            <div className="flex items-center justify-between px-4 pt-6 pb-3 border-b border-gray-100">
-              <h2 className="font-bold text-gray-900">이전 정답 확인 ({prevItems.length}개)</h2>
-              <button onClick={() => setShowPrev(false)} className="text-gray-400 p-1">
+        <div className="mac-modal-backdrop">
+          <div className="mac-modal">
+            <div className="mac-modal-titlebar">
+              <h2 className="mac-modal-title">이전 정답 확인 ({prevItems.length}개)</h2>
+              <button onClick={() => setShowPrev(false)} className="mac-button h-7 min-h-0 w-7 p-0" title="닫기">
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
 
-            <div className="flex gap-2 overflow-x-auto px-4 py-3 border-b border-gray-50">
+            <div className="mac-tabs bg-gray-300 px-3 pt-3">
               {reviewItems.map((item) => (
                 <button
                   key={item.wordId}
                   onClick={() => setReviewWordId(item.wordId)}
-                  className={`flex-shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium ${
+                  className={`mac-tab ${
                     selectedReviewItem?.wordId === item.wordId
-                      ? 'border-primary-200 bg-primary-50 text-primary-600'
-                      : 'border-gray-200 bg-white text-gray-500'
+                      ? 'mac-tab-active'
+                      : ''
                   }`}
                 >
                   {item.word}
@@ -555,8 +558,8 @@ function TestingView({
             </div>
 
             {selectedReviewItem && (
-              <div className="flex-1 overflow-y-auto px-4 py-5">
-                <div className="mb-4 rounded-3xl border border-gray-100 bg-white p-7 text-center shadow-sm">
+              <div className="flex-1 overflow-y-auto p-4">
+                <div className="mac-panel mb-4 p-7 text-center">
                   <div className="mb-2 flex items-center justify-center gap-2">
                     <p className="text-3xl font-bold text-gray-900">{selectedReviewItem.word}</p>
                     <ReviewBadge item={selectedReviewItem} />
@@ -566,17 +569,17 @@ function TestingView({
                   )}
                 </div>
 
-                <div className="mb-3 rounded-2xl border border-blue-100 bg-blue-50 p-4">
+                <div className="mac-well mb-3 bg-blue-50 p-4">
                   <p className="mb-1 text-xs font-semibold text-blue-400">내 답</p>
                   <p className="text-base text-gray-800">{selectedReviewItem.userAnswer || '-'}</p>
                 </div>
 
-                <div className="rounded-2xl border border-green-200 bg-green-50 p-4">
+                <div className="mac-well bg-green-50 p-4">
                   <div className="mb-1 flex items-center justify-between">
                     <p className="text-xs font-semibold text-green-500">정답</p>
                     <button
                       onClick={() => navigate(`/dictionary?q=${encodeURIComponent(selectedReviewItem.word)}`)}
-                      className="flex items-center gap-1 text-xs font-medium text-primary-500"
+                      className="mac-button min-h-0 px-2 py-1 text-xs"
                     >
                       <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
@@ -603,7 +606,7 @@ function TestingView({
 
       <div className="flex-1 flex flex-col justify-center gap-4">
         {/* Word card */}
-        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 text-center">
+        <div className="mac-panel bg-white p-8 text-center">
           <p className="text-4xl font-bold text-gray-900 mb-2">{word.word}</p>
           {word.incorrectCount > 0 && (
             <p className="text-sm text-red-400">오답 {word.incorrectCount}회</p>
@@ -621,19 +624,19 @@ function TestingView({
               onKeyDown={handleKeyDown}
               placeholder="한국어 뜻을 입력하세요"
               rows={3}
-              className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3 text-base resize-none outline-none focus:border-primary-400 shadow-sm"
+              className="mac-field w-full resize-none px-4 py-3 text-base outline-none"
             />
             <button
               onClick={onSubmit}
               disabled={!answer.trim()}
-              className="w-full py-4 bg-primary-600 text-white rounded-2xl font-semibold text-lg shadow-sm disabled:opacity-40 active:scale-95 transition-all"
+              className="mac-button mac-button-primary w-full py-4 text-lg"
             >
               제출
             </button>
             {answeredCount > 0 && (
               <button
                 onClick={() => openPreviousReview()}
-                className="w-full rounded-xl border border-primary-100 bg-primary-50 py-3 text-sm font-semibold text-primary-600 active:scale-95 transition-all"
+                className="mac-button w-full py-3 text-sm"
               >
                 직전 정답 보기
               </button>
@@ -645,18 +648,18 @@ function TestingView({
         {wordPhase === 'revealed' && (
           <>
             {/* My answer */}
-            <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4">
+            <div className="mac-well bg-blue-50 p-4">
               <p className="text-xs font-semibold text-blue-400 mb-1">내 답</p>
               <p className="text-base text-gray-800">{answer}</p>
             </div>
 
             {/* Correct answer */}
-            <div className="bg-green-50 border border-green-200 rounded-2xl p-4">
+            <div className="mac-well bg-green-50 p-4">
               <div className="flex items-center justify-between mb-1">
                 <p className="text-xs font-semibold text-green-500">정답</p>
                 <button
                   onClick={() => navigate(`/dictionary?q=${encodeURIComponent(word.word)}`)}
-                  className="flex items-center gap-1 text-xs text-primary-500 font-medium"
+                  className="mac-button min-h-0 px-2 py-1 text-xs"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
@@ -680,13 +683,13 @@ function TestingView({
             <div className="flex gap-3">
               <button
                 onClick={() => onGrade(false)}
-                className="flex-1 py-5 bg-red-50 border-2 border-red-200 text-red-600 rounded-2xl text-2xl font-bold active:scale-95 transition-all"
+                className="mac-button mac-button-danger flex-1 py-5 text-xl"
               >
                 ✕ 오답
               </button>
               <button
                 onClick={() => onGrade(true)}
-                className="flex-1 py-5 bg-green-50 border-2 border-green-200 text-green-600 rounded-2xl text-2xl font-bold active:scale-95 transition-all"
+                className="mac-button mac-button-success flex-1 py-5 text-xl"
               >
                 ○ 정답
               </button>
@@ -695,7 +698,7 @@ function TestingView({
             {listType === 'correct' && (
               <button
                 onClick={onDigest}
-                className="w-full py-3 bg-purple-50 border border-purple-200 text-purple-600 rounded-2xl text-sm font-medium active:scale-95 transition-all"
+                className="mac-button w-full border-l-4 border-l-purple-600 bg-purple-50 py-3 text-sm text-purple-800"
               >
                 ✓ 더이상 시험 안 볼게요 → 소화한 단어장
               </button>
@@ -708,7 +711,7 @@ function TestingView({
           <button
             onClick={onStop}
             disabled={isStopping}
-            className="w-full py-3 bg-gray-100 text-gray-500 rounded-xl text-sm font-medium active:scale-95 transition-all border border-gray-200 disabled:opacity-50"
+            className="mac-button w-full py-3 text-sm text-gray-700"
           >
             {isStopping ? '저장 중...' : '■ 중단하고 기록 저장'}
           </button>
@@ -724,12 +727,12 @@ function ResultView({ result, listLabels, onDone }) {
   const gradedCount = result.correctCount + result.incorrectCount
   const pct = gradedCount > 0 ? Math.round((result.correctCount / gradedCount) * 100) : 0
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center pb-24 px-6 max-w-lg mx-auto">
-      <div className="text-5xl mb-4">{pct >= 80 ? '🎉' : pct >= 50 ? '📝' : '💪'}</div>
+    <div className="mac-page flex flex-col items-center justify-center px-6">
+      <MacIcon name="result" className="mb-4 h-14 w-14" />
       <h2 className="text-2xl font-bold text-gray-900 mb-1">시험 완료!</h2>
       <p className="text-sm text-gray-500 mb-8">{listLabels[result.listType]}</p>
 
-      <div className="w-full bg-white rounded-3xl border border-gray-100 shadow-sm p-6 mb-6">
+      <div className="mac-panel mb-6 w-full p-6">
         <div className="text-center mb-6">
           <span className="text-5xl font-bold text-primary-600">{pct}%</span>
           <p className="text-sm text-gray-400 mt-1">정답률</p>
@@ -757,15 +760,15 @@ function ResultView({ result, listLabels, onDone }) {
       </div>
 
       {result.cycleComplete && (
-        <div className="w-full p-4 bg-indigo-50 border border-indigo-100 rounded-2xl mb-6 text-center">
-          <p className="text-sm font-semibold text-indigo-700">🎊 사이클 완료!</p>
+        <div className="mac-well mb-6 w-full bg-indigo-50 p-4 text-center">
+          <p className="text-sm font-semibold text-indigo-700">사이클 완료!</p>
           <p className="text-xs text-indigo-500 mt-1">모든 단어를 한 번씩 시험봤어요.</p>
         </div>
       )}
 
       <button
         onClick={onDone}
-        className="w-full py-4 bg-primary-600 text-white rounded-2xl font-semibold text-lg"
+        className="mac-button mac-button-primary w-full py-4 text-lg"
       >
         기록 보기
       </button>
@@ -776,13 +779,13 @@ function ResultView({ result, listLabels, onDone }) {
 function ReviewBadge({ item }) {
   if (item.isDigested) {
     return (
-      <span className="rounded-full bg-purple-100 px-2 py-0.5 text-xs font-bold text-purple-600">
+      <span className="mac-badge bg-purple-100 text-purple-700">
         소화
       </span>
     )
   }
   return (
-    <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${item.isCorrect ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-500'}`}>
+    <span className={`mac-badge ${item.isCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
       {item.isCorrect ? '○' : '✕'}
     </span>
   )

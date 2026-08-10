@@ -1,25 +1,30 @@
 import { useAuth } from '../contexts/AuthContext'
+import { MacIcon } from '../components/MacUI'
 
 export default function LoginPage() {
   const { login } = useAuth()
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-primary-50 to-white px-6">
-      <div className="text-5xl mb-6">📖</div>
-      <h1 className="text-3xl font-bold text-gray-900 mb-2">영단어 퀴즈</h1>
-      <p className="text-gray-500 text-center mb-10">Excel 단어장으로 나만의 영단어 시험</p>
+    <div className="mac-page flex items-center justify-center px-4 py-10">
+      <div className="mac-panel w-full max-w-sm p-6 text-center sm:p-8">
+        <MacIcon name="book" className="mx-auto mb-4 h-16 w-16" />
+        <h1 className="mb-2 text-2xl font-bold text-black">영단어 퀴즈</h1>
+        <p className="mb-8 text-sm text-gray-700">Excel 단어장으로 나만의 영단어 시험</p>
 
-      <button
-        onClick={login}
-        className="flex items-center gap-3 px-6 py-3 bg-white border border-gray-200 rounded-xl shadow-sm text-gray-700 font-medium hover:bg-gray-50 active:scale-95 transition-all"
-      >
-        <GoogleIcon />
-        Google 계정으로 시작
-      </button>
+        <button
+          onClick={login}
+          className="mac-button mac-button-primary w-full px-5 py-3 text-base"
+        >
+          <GoogleIcon />
+          Google 계정으로 시작
+        </button>
 
-      <p className="mt-8 text-xs text-gray-400 text-center">
-        Google 로그인으로 Mac과 iPhone에서<br />같은 데이터를 사용할 수 있어요
-      </p>
+        <div className="mac-well mt-6 p-3">
+          <p className="text-xs leading-relaxed text-gray-700">
+            Google 로그인으로 Mac과 iPhone에서<br />같은 데이터를 사용할 수 있어요
+          </p>
+        </div>
+      </div>
     </div>
   )
 }

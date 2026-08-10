@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useData } from '../contexts/DataContext'
+import { MacIcon, MacPageHeader } from '../components/MacUI'
 
 const SEARCH_BADGES = {
   correct: 'bg-green-100 text-green-600',
@@ -18,10 +19,10 @@ const SEARCH_LABELS = {
 const MAX_EXAMPLES = 5
 
 const LIST_TYPES = [
-  { key: 'all',      label: '전체 단어장',    color: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
-  { key: 'correct',  label: '정답 단어장',    color: 'bg-green-50 text-green-700 border-green-200' },
-  { key: 'incorrect',label: '오답 단어장',    color: 'bg-red-50 text-red-700 border-red-200' },
-  { key: 'digested', label: '소화한 단어장',  color: 'bg-purple-50 text-purple-700 border-purple-200' },
+  { key: 'all',       label: '전체 단어장' },
+  { key: 'correct',   label: '정답 단어장' },
+  { key: 'incorrect', label: '오답 단어장' },
+  { key: 'digested',  label: '소화한 단어장' },
 ]
 
 export default function WordListPage() {
@@ -85,31 +86,34 @@ export default function WordListPage() {
   if (loading) return <LoadingScreen />
 
   return (
-    <div className="min-h-screen pb-24 max-w-lg mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 pt-6 pb-3">
-        <h1 className="text-xl font-bold text-gray-900">단어장</h1>
-        <div className="flex gap-2">
+    <div className="mac-page">
+      <MacPageHeader
+        icon="book"
+        title="단어장"
+        actions={(
+          <>
           <button
             onClick={() => navigate('/import')}
-            className="text-xs px-3 py-1.5 bg-primary-50 text-primary-600 rounded-lg font-medium"
+            className="mac-button px-2.5 text-xs"
           >
-            Excel 불러오기
+            <MacIcon name="import" className="h-5 w-5" />
+            <span className="hidden sm:inline">Excel </span>불러오기
           </button>
           <button
             onClick={logout}
-            className="text-xs px-3 py-1.5 bg-gray-100 text-gray-500 rounded-lg font-medium"
+            className="mac-button px-2.5 text-xs"
           >
             로그아웃
           </button>
-        </div>
-      </div>
+          </>
+        )}
+      />
 
       {error && (
-        <div className="mx-4 mb-3 rounded-xl border border-red-100 bg-red-50 p-3 text-sm text-red-700">
+        <div className="mac-alert mb-3 text-sm">
           <div className="flex items-center justify-between gap-3">
             <span>{error}</span>
-            <button onClick={refresh} className="flex-shrink-0 font-semibold text-red-600">
+            <button onClick={refresh} className="mac-button flex-shrink-0 px-2 text-xs">
               다시 시도
             </button>
           </div>
@@ -117,20 +121,18 @@ export default function WordListPage() {
       )}
 
       {/* 검색창 */}
-      <div className="px-4 mb-3">
-        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 shadow-sm">
-          <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 15.803a7.5 7.5 0 0010.607 10.607z" />
-          </svg>
+      <div className="mb-3">
+        <div className="mac-field flex items-center gap-2 px-2.5 py-2">
+          <MacIcon name="search" className="h-5 w-5 flex-shrink-0" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => { setSearchQuery(e.target.value); setExpanded(null) }}
             placeholder="단어 또는 뜻으로 검색"
-            className="flex-1 text-sm outline-none bg-transparent"
+            className="flex-1 bg-transparent text-base outline-none"
           />
           {searchQuery && (
-            <button onClick={() => setSearchQuery('')} className="text-gray-400">
+            <button onClick={() => setSearchQuery('')} className="mac-icon-button h-7 w-7" title="검색어 지우기">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -140,16 +142,14 @@ export default function WordListPage() {
       </div>
 
       {/* Tabs (검색 중엔 숨김) */}
-      {!searchQuery && <div className="flex gap-2 px-4 mb-4 overflow-x-auto">
-        {LIST_TYPES.map(({ key, label, color }) => {
+      {!searchQuery && <div className="mac-tabs mb-3">
+        {LIST_TYPES.map(({ key, label }) => {
           const count = listMap[key].length
           return (
             <button
               key={key}
               onClick={() => { setActive(key); setExpanded(null) }}
-              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
-                active === key ? color : 'bg-white text-gray-500 border-gray-200'
-              }`}
+              className={`mac-tab ${active === key ? 'mac-tab-active' : ''}`}
             >
               {label} <span className="ml-1 font-bold">{count}</span>
             </button>
@@ -158,7 +158,7 @@ export default function WordListPage() {
       </div>}
 
       {/* 정렬 */}
-      <div className="flex gap-1.5 px-4 mb-3 overflow-x-auto">
+      <div className="mac-segment mb-3">
         {[
           { key: 'default',        label: '랜덤순' },
           { key: 'new-first',      label: '최근 추가순' },
@@ -170,11 +170,7 @@ export default function WordListPage() {
           <button
             key={key}
             onClick={() => setSortBy(key)}
-            className={`flex-shrink-0 text-xs px-2.5 py-1 rounded-full border transition-all font-medium ${
-              sortBy === key
-                ? 'bg-gray-700 text-white border-gray-700'
-                : 'bg-white text-gray-400 border-gray-200'
-            }`}
+            className={`mac-segment-button ${sortBy === key ? 'mac-segment-button-active' : ''}`}
           >
             {label}
           </button>
@@ -183,20 +179,20 @@ export default function WordListPage() {
 
       {/* Word list */}
       {words.length === 0 ? (
-        <div className="text-center py-20 text-gray-400">
-          <p className="text-4xl mb-3">📭</p>
-          <p className="text-sm">단어가 없어요</p>
+        <div className="mac-panel py-14 text-center text-gray-600">
+          <MacIcon name="empty" className="mx-auto mb-3 h-12 w-12" />
+          <p className="text-sm font-bold">단어가 없어요</p>
           {active === 'all' && (
             <button
               onClick={() => navigate('/import')}
-              className="mt-4 text-sm text-primary-600 font-medium"
+              className="mac-button mt-4 px-4 text-sm"
             >
               Excel 파일 불러오기 →
             </button>
           )}
         </div>
       ) : (
-        <div className="px-4 space-y-2">
+        <div>
           {words.map((w) => {
             const needsExamples = w.incorrectCount > 0 && w.examples.length < Math.min(w.incorrectCount, MAX_EXAMPLES)
             const isOpen = expanded === w.id
@@ -204,7 +200,7 @@ export default function WordListPage() {
             return (
               <div
                 key={w.id}
-                className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden"
+                className="mac-list-row"
               >
                 <button
                   className="w-full flex items-center justify-between px-4 py-3 text-left"
@@ -214,12 +210,12 @@ export default function WordListPage() {
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-gray-900 truncate">{w.word}</span>
                       {q && SEARCH_BADGES[w.status] && (
-                        <span className={`flex-shrink-0 text-xs px-1.5 py-0.5 rounded-full font-medium ${SEARCH_BADGES[w.status]}`}>
+                        <span className={`mac-badge flex-shrink-0 ${SEARCH_BADGES[w.status]}`}>
                           {SEARCH_LABELS[w.status]}
                         </span>
                       )}
                       {needsExamples && (
-                        <span className="flex-shrink-0 text-xs bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-full font-medium">
+                        <span className="mac-badge flex-shrink-0 bg-orange-100 text-orange-700">
                           예문 추가 필요
                         </span>
                       )}
@@ -232,7 +228,7 @@ export default function WordListPage() {
                     )}
                     <button
                       onClick={(e) => { e.stopPropagation(); navigate(`/dictionary?q=${encodeURIComponent(w.word)}`) }}
-                      className="p-1 text-gray-400 hover:text-primary-500 active:scale-90 transition-all"
+                      className="mac-icon-button"
                       title="사전 검색"
                     >
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -244,7 +240,7 @@ export default function WordListPage() {
                 </button>
 
                 {isOpen && (
-                  <div className="px-4 pb-3 pt-1 border-t border-gray-50">
+                  <div className="border-t border-gray-500 bg-white px-4 pb-3 pt-3">
                     {w.examples.length > 0 ? (
                       <div className="space-y-1.5">
                         {w.examples.map((ex, i) => (
@@ -285,8 +281,11 @@ function ChevronIcon({ open }) {
 
 function LoadingScreen() {
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
+    <div className="mac-loading">
+      <div>
+        <p className="mb-2 text-center text-sm font-bold">단어장 여는 중...</p>
+        <div className="mac-progress" />
+      </div>
     </div>
   )
 }

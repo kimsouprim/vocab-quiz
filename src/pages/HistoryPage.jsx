@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useData } from '../contexts/DataContext'
 import { formatDate } from '../utils/dateUtils'
+import { MacIcon, MacPageHeader } from '../components/MacUI'
 
 const listLabels = {
   all: '전체 단어장',
@@ -18,14 +19,14 @@ export default function HistoryPage() {
   }
 
   return (
-    <div className="min-h-screen pb-24 pt-6 px-4 max-w-lg mx-auto">
-      <h1 className="text-xl font-bold text-gray-900 mb-6">시험 기록</h1>
+    <div className="mac-page">
+      <MacPageHeader icon="history" title="시험 기록" />
 
       {error && (
-        <div className="mb-4 rounded-xl border border-red-100 bg-red-50 p-3 text-sm text-red-700">
+        <div className="mac-alert mb-4 text-sm">
           <div className="flex items-center justify-between gap-3">
             <span>{error}</span>
-            <button onClick={refresh} className="flex-shrink-0 font-semibold text-red-600">
+            <button onClick={refresh} className="mac-button flex-shrink-0 px-2 text-xs">
               다시 시도
             </button>
           </div>
@@ -33,19 +34,19 @@ export default function HistoryPage() {
       )}
 
       {tests.length === 0 ? (
-        <div className="text-center py-20 text-gray-400">
-          <p className="text-4xl mb-3">📋</p>
-          <p className="text-sm">아직 시험 기록이 없어요</p>
+        <div className="mac-panel py-14 text-center text-gray-600">
+          <MacIcon name="history" className="mx-auto mb-3 h-12 w-12" />
+          <p className="text-sm font-bold">아직 시험 기록이 없어요</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div>
           {tests.map((test) => {
             const pct = Math.round((test.correctCount / test.totalCount) * 100)
             return (
               <button
                 key={test.id}
                 onClick={() => setSelected(test)}
-                className="w-full bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-left hover:border-primary-200 transition-all active:scale-[0.98]"
+                className="mac-list-row mb-2 w-full p-4 text-left"
               >
                 <div className="flex items-center justify-between mb-2">
                   <div>
@@ -79,9 +80,9 @@ function HistoryDetail({ test, onBack }) {
   })
 
   return (
-    <div className="min-h-screen pb-24 pt-6 px-4 max-w-lg mx-auto">
-      <div className="flex items-center gap-3 mb-4">
-        <button onClick={onBack} className="p-1.5 rounded-lg hover:bg-gray-100">
+    <div className="mac-page">
+      <div className="mac-page-header justify-start">
+        <button onClick={onBack} className="mac-button h-9 min-h-0 w-9 p-0" title="기록 목록으로">
           <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
@@ -93,35 +94,33 @@ function HistoryDetail({ test, onBack }) {
       </div>
 
       {/* Summary bar */}
-      <div className="flex gap-2 mb-4">
+      <div className="mac-segment mb-4 w-fit max-w-full">
         {[
-          { key: 'all', label: `전체 ${test.totalCount}`, color: 'bg-gray-100 text-gray-700' },
-          { key: 'correct', label: `정답 ${test.correctCount}`, color: 'bg-green-100 text-green-700' },
-          { key: 'incorrect', label: `오답 ${test.incorrectCount}`, color: 'bg-red-100 text-red-700' },
-        ].map(({ key, label, color }) => (
+          { key: 'all', label: `전체 ${test.totalCount}` },
+          { key: 'correct', label: `정답 ${test.correctCount}` },
+          { key: 'incorrect', label: `오답 ${test.incorrectCount}` },
+        ].map(({ key, label }) => (
           <button
             key={key}
             onClick={() => setFilter(key)}
-            className={`px-3 py-1 rounded-full text-sm font-medium transition-opacity ${color} ${filter === key ? 'opacity-100' : 'opacity-50'}`}
+            className={`mac-segment-button ${filter === key ? 'mac-segment-button-active' : ''}`}
           >
             {label}
           </button>
         ))}
       </div>
 
-      <div className="space-y-2">
+        <div>
         {items.map((item, i) => (
           <div
             key={i}
-            className={`bg-white rounded-xl border shadow-sm p-4 ${
-              item.isCorrect ? 'border-green-100' : 'border-red-100'
-            }`}
+            className={`mac-list-row mb-2 border-l-4 p-4 ${item.isCorrect ? 'border-l-green-600' : 'border-l-red-500'}`}
           >
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="font-semibold text-gray-900">{item.word}</span>
-                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${item.isCorrect ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-500'}`}>
+                  <span className={`mac-badge ${item.isCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                     {item.isCorrect ? '○' : '✕'}
                   </span>
                 </div>

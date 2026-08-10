@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { MacIcon, MacPageHeader } from '../components/MacUI'
 
 const BASE_URL = 'https://en.dict.naver.com/#'
 
@@ -14,28 +15,31 @@ export default function DictionaryPage() {
   const [blocked, setBlocked] = useState(false)
 
   return (
-    <div className="flex flex-col h-screen pb-16">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 pt-6 pb-3 bg-white border-b border-gray-100 flex-shrink-0">
-        <h1 className="text-xl font-bold text-gray-900">
-          {query ? `"${query}"` : '사전'}
-        </h1>
-        <a
-          href={dictUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="text-xs px-3 py-1.5 bg-gray-100 text-gray-500 rounded-lg font-medium"
-        >
-          새 탭으로 열기 ↗
-        </a>
-      </div>
+    <div className="mac-page flex flex-col">
+      <MacPageHeader
+        icon="search"
+        title={query ? `"${query}"` : '사전'}
+        actions={(
+          <a
+            href={dictUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="mac-button px-3 text-xs"
+          >
+            새 탭으로 열기 ↗
+          </a>
+        )}
+      />
 
       {/* iframe */}
       {!blocked ? (
-        <div className="flex-1 relative">
+        <div className="mac-well relative min-h-[60dvh] flex-1 overflow-hidden">
           {!loaded && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
-              <div className="w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-gray-200">
+              <div>
+                <p className="mb-2 text-center text-sm font-bold">사전 여는 중...</p>
+                <div className="mac-progress" />
+              </div>
             </div>
           )}
           <iframe
@@ -48,8 +52,8 @@ export default function DictionaryPage() {
           />
         </div>
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-center px-6 gap-4">
-          <p className="text-4xl">🔒</p>
+        <div className="mac-panel flex flex-1 flex-col items-center justify-center gap-4 px-6 py-12">
+          <MacIcon name="lock" className="h-12 w-12" />
           <p className="text-gray-600 font-medium text-center">
             사이트 보안 정책으로 앱 내에서 열 수 없어요
           </p>
@@ -57,7 +61,7 @@ export default function DictionaryPage() {
             href={dictUrl}
             target="_blank"
             rel="noreferrer"
-            className="px-6 py-3 bg-primary-600 text-white rounded-xl font-semibold"
+            className="mac-button mac-button-primary px-6 py-3"
           >
             네이버 사전 열기 ↗
           </a>
