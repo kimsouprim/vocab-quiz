@@ -150,6 +150,10 @@
     border-bottom: 1px solid #777;
   }
 
+  .mac-dictionary-page {
+    height: calc(100dvh - 128px - env(safe-area-inset-bottom));
+  }
+
   .mac-panel {
     border: 1px solid #111;
     border-radius: 2px;
@@ -488,6 +492,10 @@
   .mac-page {
     min-height: calc(100dvh - 94px - env(safe-area-inset-bottom));
     padding: 10px 10px 22px;
+  }
+
+  .mac-dictionary-page {
+    height: calc(100dvh - 94px - env(safe-area-inset-bottom));
   }
 
   .mac-page-header {

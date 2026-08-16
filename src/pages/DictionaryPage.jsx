@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { MacIcon, MacPageHeader } from '../components/MacUI'
 
@@ -14,8 +14,13 @@ export default function DictionaryPage() {
   const [loaded, setLoaded] = useState(false)
   const [blocked, setBlocked] = useState(false)
 
+  useEffect(() => {
+    setLoaded(false)
+    setBlocked(false)
+  }, [dictUrl])
+
   return (
-    <div className="mac-page flex flex-col">
+    <div className="mac-page mac-dictionary-page flex min-h-0 flex-col overflow-hidden">
       <MacPageHeader
         icon="search"
         title={query ? `"${query}"` : '사전'}
@@ -26,14 +31,14 @@ export default function DictionaryPage() {
             rel="noreferrer"
             className="mac-button px-3 text-xs"
           >
-            새 탭으로 열기 ↗
+            전체 화면으로 열기 ↗
           </a>
         )}
       />
 
       {/* iframe */}
       {!blocked ? (
-        <div className="mac-well relative min-h-[60dvh] flex-1 overflow-hidden">
+        <div className="mac-well relative min-h-0 flex-1 overflow-hidden">
           {!loaded && (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-gray-200">
               <div>
@@ -44,11 +49,10 @@ export default function DictionaryPage() {
           )}
           <iframe
             src={dictUrl}
-            className="w-full h-full border-none"
+            className="block h-full min-h-full w-full border-none"
             onLoad={() => setLoaded(true)}
             onError={() => setBlocked(true)}
             title="Naver 영어사전"
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
           />
         </div>
       ) : (

@@ -1,8 +1,20 @@
+import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { MacIcon } from '../components/MacUI'
 
 export default function LoginPage() {
-  const { login } = useAuth()
+  const { login, authError, clearAuthError } = useAuth()
+  const [isLoggingIn, setIsLoggingIn] = useState(false)
+
+  async function handleLogin() {
+    clearAuthError()
+    setIsLoggingIn(true)
+    try {
+      await login()
+    } catch {
+      setIsLoggingIn(false)
+    }
+  }
 
   return (
     <div className="mac-page flex items-center justify-center px-4 py-10">
@@ -12,12 +24,20 @@ export default function LoginPage() {
         <p className="mb-8 text-sm text-gray-700">Excel 단어장으로 나만의 영단어 시험</p>
 
         <button
-          onClick={login}
+          onClick={handleLogin}
+          disabled={isLoggingIn}
           className="mac-button mac-button-primary w-full px-5 py-3 text-base"
         >
           <GoogleIcon />
-          Google 계정으로 시작
+          {isLoggingIn ? 'Google 로그인 여는 중...' : 'Google 계정으로 시작'}
         </button>
+
+        {authError && (
+          <div className="mac-alert mt-4 text-left text-xs" role="alert">
+            <p className="font-bold">{getAuthErrorMessage(authError.code)}</p>
+            {authError.code && <p className="mt-1 text-gray-600">{authError.code}</p>}
+          </div>
+        )}
 
         <div className="mac-well mt-6 p-3">
           <p className="text-xs leading-relaxed text-gray-700">
@@ -27,6 +47,14 @@ export default function LoginPage() {
       </div>
     </div>
   )
+}
+
+function getAuthErrorMessage(code) {
+  if (code === 'auth/popup-closed-by-user') return '로그인 창이 닫혔어요. 다시 시도해 주세요.'
+  if (code === 'auth/network-request-failed') return '네트워크 연결을 확인한 뒤 다시 시도해 주세요.'
+  if (code === 'auth/unauthorized-domain') return '현재 사이트 주소가 Google 로그인 허용 목록에 없어요.'
+  if (code === 'auth/operation-not-allowed') return 'Firebase에서 Google 로그인이 비활성화되어 있어요.'
+  return 'Google 로그인을 완료하지 못했어요. 잠시 후 다시 시도해 주세요.'
 }
 
 function GoogleIcon() {
